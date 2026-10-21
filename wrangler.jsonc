@@ -1,0 +1,19 @@
+
+{
+  "$schema": "https://unpkg.com/wrangler@latest/config-schema.json",
+  "name": "aurelith-city",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-21",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "aurelith-city-db",
+      "database_id": "435ffe9f-7592-45ae-a7d8-d1fbccca5275"
+    }
+  ]
+}
