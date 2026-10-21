@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aurelith City — Virtual World</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #10131d;
+      color: #f4f5ff;
+      font-family: Inter, Arial, sans-serif;
+    }
+    header {
+      height: 70px;
+      padding: 0 6%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #191d2b;
+      border-bottom: 1px solid #30364b;
+    }
+    .logo { font-size: 21px; font-weight: 800; letter-spacing: 1px; }
+    .logo span { color: #a78bfa; }
+    .online { color: #7ee7b1; font-size: 13px; }
+    main { max-width: 1250px; margin: auto; padding: 28px 20px; }
+    .welcome { margin-bottom: 24px; }
+    .welcome h1 { font-size: clamp(25px, 4vw, 38px); margin: 0 0 8px; }
+    .welcome p { color: #9ca5bd; margin: 0; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .panel, .stat {
+      background: #1a1f30;
+      border: 1px solid #30364b;
+      border-radius: 15px;
+    }
+    .stat { padding: 18px; }
+    .stat small { color: #9ca5bd; }
+    .stat strong { display: block; margin-top: 10px; font-size: 25px; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr);
+      gap: 20px;
+    }
+    .panel { padding: 20px; }
+    .panel h2 { font-size: 18px; margin: 0 0 16px; }
+    .city {
+      position: relative;
+      min-height: 390px;
+      overflow: hidden;
+      border-radius: 12px;
+      background:
+        linear-gradient(30deg, transparent 47%, #d3c69b 48%, #d3c69b 52%, transparent 53%),
+        linear-gradient(150deg, transparent 47%, #d3c69b 48%, #d3c69b 52%, transparent 53%),
+        #426c61;
+      background-size: 100% 100%;
+    }
+    .city:before, .city:after {
+      content: "";
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-image:
+        linear-gradient(90deg, transparent 48%, #d3c69b 49%, #d3c69b 51%, transparent 52%);
+      opacity: .7;
+    }
+    .district {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      width: 100px;
+      height: 75px;
+      border: 3px solid #d4c5a1;
+      border-radius: 8px;
+      background: #a87860;
+      box-shadow: 0 7px 0 #674a45;
+      font-size: 27px;
+      cursor: pointer;
+      transition: transform .2s;
+    }
+    .district:hover { transform: translateY(-5px); }
+    .district small { font-size: 10px; }
+    .d1 { top: 13%; left: 12%; }
+    .d2 { top: 17%; right: 12%; background: #7b79a8; }
+    .d3 { top: 53%; left: 17%; background: #b6a16b; }
+    .d4 { top: 57%; right: 15%; background: #628c75; }
+    .city-label {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      padding: 8px 12px;
+      background: #171b28dd;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    .profile { display: flex; gap: 13px; align-items: center; }
+    .avatar {
+      width: 55px; height: 55px; display: grid; place-items: center;
+      background: #39315d; border-radius: 14px; font-size: 28px;
+    }
+    .muted { color: #9ca5bd; font-size: 13px; }
+    .progress {
+      height: 7px; background: #30364b; border-radius: 9px; margin: 9px 0 18px;
+      overflow: hidden;
+    }
+    .progress div { height: 100%; width: 35%; background: #a78bfa; }
+    button {
+      border: 0; border-radius: 9px; padding: 11px 14px;
+      background: #8b79e8; color: white; font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { background: #a192ff; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .secondary { background: #2c3349; }
+    .feed { margin-top: 20px; }
+    .event {
+      border-bottom: 1px solid #30364b; padding: 12px 0;
+      color: #c6cbe0; font-size: 13px;
+    }
+    .event:last-child { border-bottom: 0; }
+    footer { padding: 28px; text-align: center; color: #747e99; font-size: 12px; }
+    @media(max-width: 760px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .layout { grid-template-columns: 1fr; }
+      header { padding: 0 18px; }
+      .city { min-height: 330px; }
+      .district { width: 78px; height: 65px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">✦ AURELITH<span> CITY</span></div>
+    <div class="online">● Dunia virtual aktif</div>
+  </header>
+
+  <main>
+    <section class="welcome">
+      <h1>Bangun kehidupanmu sendiri.</h1>
+      <p>Setiap keputusan membentuk masa depanmu di Aurelith.</p>
+    </section>
+
+    <section class="stats">
+      <div class="stat"><small>Populasi kota</small><strong id="population">1.284</strong></div>
+      <div class="stat"><small>Ekonomi kota</small><strong id="economy">Rp 2,4 M</strong></div>
+      <div class="stat"><small>Bisnis aktif</small><strong>48</strong></div>
+      <div class="stat"><small>Aktivitas hari ini</small><strong id="activities">326</strong></div>
+    </section>
+
+    <section class="layout">
+      <div class="panel">
+        <h2>🗺️ Jelajahi Aurelith</h2>
+        <div class="city">
+          <button class="district d1" onclick="visit('Pusat Kota')">🏛️<small>PUSAT KOTA</small></button>
+          <button class="district d2" onclick="visit('Distrik Bisnis')">🏢<small>BISNIS</small></button>
+          <button class="district d3" onclick="visit('Pasar')">🏪<small>PASAR</small></button>
+          <button class="district d4" onclick="visit('Taman Kota')">🌳<small>TAMAN</small></button>
+          <div class="city-label" id="location">📍 Lokasi: Alun-Alun Aurelith</div>
+        </div>
+        <p class="muted">Pilih bangunan untuk menjelajahi distrik kota.</p>
+      </div>
+
+      <div>
+        <div class="panel">
+          <h2>👤 Profil Warga</h2>
+          <div class="profile">
+            <div class="avatar">🧑‍💼</div>
+            <div>
+              <strong>Warga Baru</strong>
+              <div class="muted">Level 1 · Penduduk Aurelith</div>
+            </div>
+          </div>
+          <p class="muted">Pengalaman · 35 / 100 XP</p>
+          <div class="progress"><div></div></div>
+          <p>💰 Saldo: <strong id="balance">Rp 1.000.000</strong></p>
+          <p>⚡ Energi: <strong id="energy">100 / 100</strong></p>
+          <div class="actions">
+            <button onclick="work()">💼 Bekerja</button>
+            <button class="secondary" onclick="rest()">🛌 Istirahat</button>
+          </div>
+        </div>
+
+        <div class="panel feed">
+          <h2>🌐 Aktivitas Kota</h2>
+          <div id="feed">
+            <div class="event">🏙️ Aurelith City siap menyambut warga baru.</div>
+            <div class="event">🏪 Pasar kota sedang beroperasi.</div>
+            <div class="event">🤖 Warga virtual menjalani rutinitas harian.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>AURELITH CITY · A WORLD THAT NEVER STOPS</footer>
+
+  <script>
+    let balance = 1000000;
+    let energy = 100;
+
+    function addEvent(message) {
+      const feed = document.getElementById("feed");
+      const item = document.createElement("div");
+      item.className = "event";
+      item.textContent = message;
+      feed.prepend(item);
+    }
+
+    function visit(place) {
+      document.getElementById("location").textContent = "📍 Lokasi: " + place;
+      addEvent("🚶 Kamu mengunjungi " + place + ".");
+    }
+
+    function work() {
+      if (energy < 20) {
+        addEvent("⚠️ Energi tidak cukup. Istirahatlah dahulu.");
+        return;
+      }
+      energy -= 20;
+      balance += 100000;
+      document.getElementById("balance").textContent =
+        "Rp " + balance.toLocaleString("id-ID");
+      document.getElementById("energy").textContent = energy + " / 100";
+      document.getElementById("activities").textContent =
+        Number(document.getElementById("activities").textContent) + 1;
+      addEvent("💼 Kamu bekerja dan memperoleh Rp 100.000.");
+    }
+
+    function rest() {
+      energy = Math.min(100, energy + 40);
+      document.getElementById("energy").textContent = energy + " / 100";
+      addEvent("🛌 Kamu beristirahat dan memulihkan energi.");
+    }
+  </script>
+</body>
+</html>
