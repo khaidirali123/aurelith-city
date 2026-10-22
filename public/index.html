@@ -2,241 +2,519 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aurelith City — Virtual World</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #10131d;
-      color: #f4f5ff;
-      font-family: Inter, Arial, sans-serif;
-    }
-    header {
-      height: 70px;
-      padding: 0 6%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #191d2b;
-      border-bottom: 1px solid #30364b;
-    }
-    .logo { font-size: 21px; font-weight: 800; letter-spacing: 1px; }
-    .logo span { color: #a78bfa; }
-    .online { color: #7ee7b1; font-size: 13px; }
-    main { max-width: 1250px; margin: auto; padding: 28px 20px; }
-    .welcome { margin-bottom: 24px; }
-    .welcome h1 { font-size: clamp(25px, 4vw, 38px); margin: 0 0 8px; }
-    .welcome p { color: #9ca5bd; margin: 0; }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-      margin-bottom: 24px;
-    }
-    .panel, .stat {
-      background: #1a1f30;
-      border: 1px solid #30364b;
-      border-radius: 15px;
-    }
-    .stat { padding: 18px; }
-    .stat small { color: #9ca5bd; }
-    .stat strong { display: block; margin-top: 10px; font-size: 25px; }
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr);
-      gap: 20px;
-    }
-    .panel { padding: 20px; }
-    .panel h2 { font-size: 18px; margin: 0 0 16px; }
-    .city {
-      position: relative;
-      min-height: 390px;
-      overflow: hidden;
-      border-radius: 12px;
-      background:
-        linear-gradient(30deg, transparent 47%, #d3c69b 48%, #d3c69b 52%, transparent 53%),
-        linear-gradient(150deg, transparent 47%, #d3c69b 48%, #d3c69b 52%, transparent 53%),
-        #426c61;
-      background-size: 100% 100%;
-    }
-    .city:before, .city:after {
-      content: "";
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background-image:
-        linear-gradient(90deg, transparent 48%, #d3c69b 49%, #d3c69b 51%, transparent 52%);
-      opacity: .7;
-    }
-    .district {
-      position: absolute;
-      display: grid;
-      place-items: center;
-      width: 100px;
-      height: 75px;
-      border: 3px solid #d4c5a1;
-      border-radius: 8px;
-      background: #a87860;
-      box-shadow: 0 7px 0 #674a45;
-      font-size: 27px;
-      cursor: pointer;
-      transition: transform .2s;
-    }
-    .district:hover { transform: translateY(-5px); }
-    .district small { font-size: 10px; }
-    .d1 { top: 13%; left: 12%; }
-    .d2 { top: 17%; right: 12%; background: #7b79a8; }
-    .d3 { top: 53%; left: 17%; background: #b6a16b; }
-    .d4 { top: 57%; right: 15%; background: #628c75; }
-    .city-label {
-      position: absolute;
-      bottom: 12px;
-      left: 12px;
-      padding: 8px 12px;
-      background: #171b28dd;
-      border-radius: 8px;
-      font-size: 12px;
-    }
-    .profile { display: flex; gap: 13px; align-items: center; }
-    .avatar {
-      width: 55px; height: 55px; display: grid; place-items: center;
-      background: #39315d; border-radius: 14px; font-size: 28px;
-    }
-    .muted { color: #9ca5bd; font-size: 13px; }
-    .progress {
-      height: 7px; background: #30364b; border-radius: 9px; margin: 9px 0 18px;
-      overflow: hidden;
-    }
-    .progress div { height: 100%; width: 35%; background: #a78bfa; }
-    button {
-      border: 0; border-radius: 9px; padding: 11px 14px;
-      background: #8b79e8; color: white; font-weight: 700;
-      cursor: pointer;
-    }
-    button:hover { background: #a192ff; }
-    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
-    .secondary { background: #2c3349; }
-    .feed { margin-top: 20px; }
-    .event {
-      border-bottom: 1px solid #30364b; padding: 12px 0;
-      color: #c6cbe0; font-size: 13px;
-    }
-    .event:last-child { border-bottom: 0; }
-    footer { padding: 28px; text-align: center; color: #747e99; font-size: 12px; }
-    @media(max-width: 760px) {
-      .stats { grid-template-columns: repeat(2, 1fr); }
-      .layout { grid-template-columns: 1fr; }
-      header { padding: 0 18px; }
-      .city { min-height: 330px; }
-      .district { width: 78px; height: 65px; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurelith City — Your Life, Your City</title>
+<style>
+:root {
+  --bg:#0b1020; --panel:#121a2d; --panel2:#19243a;
+  --line:#293650; --text:#edf3ff; --muted:#8e9db7;
+  --gold:#f4c76b; --green:#6ee7ad; --blue:#76a9ff; --red:#ff8585;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px Inter,system-ui,Arial,sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer;border:0;border-radius:10px;padding:11px 14px;font-weight:700;transition:.15s}
+button:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.primary{background:var(--gold);color:#1b2030}
+.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.danger{background:#47232e;color:#ffb5bd}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.hidden{display:none!important}
+header{height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);background:#0e1527;gap:16px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:900;letter-spacing:.5px}
+.logo{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,#f8d68a,#b7833f);color:#1a2030;font-size:20px}
+.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:2px;margin-top:3px}
+.header-right{display:flex;align-items:center;gap:10px}
+.pill{padding:8px 11px;border:1px solid var(--line);background:var(--panel);border-radius:999px;font-size:12px}
+main{max-width:1600px;margin:auto;padding:20px}
+.welcome{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:20px}
+h1{font-size:25px;margin:0 0 7px}
+h2{font-size:15px;margin:0}
+.welcome p{margin:0;color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:18px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.panel-head{padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+.map-wrap{position:relative;background:#172b2b;overflow:hidden}
+#cityMap{display:block;width:100%;height:auto;aspect-ratio:1.5;cursor:crosshair;touch-action:manipulation}
+.map-hint{position:absolute;left:12px;bottom:12px;background:#0b1020d9;border:1px solid #ffffff25;border-radius:10px;padding:9px 12px;font-size:11px;color:#dce8e8;pointer-events:none}
+.map-label{position:absolute;right:12px;top:12px;padding:7px 10px;border-radius:8px;background:#0b1020d9;font-size:11px}
+.map-footer{padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.legend{display:flex;gap:13px;flex-wrap:wrap;color:var(--muted);font-size:11px}
+.legend span:before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px}
+.legend span:nth-child(2):before{background:var(--gold)}
+.legend span:nth-child(3):before{background:#79c9f7}
+.side{display:grid;gap:15px}
+.card-body{padding:16px}
+.profile-top{display:flex;align-items:center;gap:12px;margin-bottom:17px}
+.avatar{width:54px;height:54px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(135deg,#5c739a,#283954);font-size:27px}
+.profile-name{font-size:16px;font-weight:800;margin-bottom:4px}
+.stat{margin:14px 0}
+.stat-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:7px}
+.bar{height:7px;background:#29354b;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--green);width:100%;transition:width .3s}
+.money{color:var(--gold);font-size:25px;font-weight:900}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}
+.mini-stat{background:var(--panel2);padding:12px;border-radius:11px}
+.mini-stat strong{display:block;font-size:17px;margin-top:6px}
+select,input{width:100%;padding:12px;background:#0d1527;border:1px solid var(--line);border-radius:10px;color:var(--text);outline:none}
+select:focus,input:focus{border-color:var(--blue)}
+label{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}
+.field{margin-bottom:13px}
+.full{width:100%}
+.job-desc{font-size:12px;color:var(--muted);line-height:1.5;margin:10px 0 14px}
+.notice{padding:11px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;font-size:12px;line-height:1.5;margin-top:12px;overflow-wrap:anywhere}
+.notice.error{border-color:#783844;color:#ffb8be}
+.notice.success{border-color:#285e4c;color:#a2f5cf}
+.activity-row{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.activity-row:last-child{border-bottom:0}
+.activity-icon{width:35px;height:35px;display:grid;place-items:center;background:var(--panel2);border-radius:10px;font-size:17px}
+.activity-row strong{display:block;font-size:12px;margin-bottom:4px}
+.activity-row small{color:var(--muted)}
+.auth-screen{min-height:calc(100vh - 68px);display:grid;place-items:center;padding:24px}
+.auth-box{width:min(100%,440px);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:26px;box-shadow:0 25px 90px #0005}
+.auth-title{text-align:center;margin-bottom:24px}
+.auth-title .logo{margin:0 auto 12px;width:54px;height:54px;font-size:27px}
+.auth-title h1{font-size:23px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;background:#0c1425;border-radius:11px;margin-bottom:20px}
+.tabs button{background:transparent;color:var(--muted)}
+.tabs button.active{background:var(--panel2);color:var(--text)}
+.footer{text-align:center;padding:20px;color:var(--muted);font-size:11px}
+@media(max-width:950px){.layout{grid-template-columns:1fr}.side{grid-template-columns:repeat(2,minmax(0,1fr))}.side .profile-panel{grid-column:1/-1}}
+@media(max-width:600px){header{padding:0 13px;height:60px}.header-right .pill{display:none}main{padding:13px}.welcome{align-items:flex-start;flex-direction:column}h1{font-size:22px}.side{grid-template-columns:1fr}.side .profile-panel{grid-column:auto}#cityMap{aspect-ratio:1/1}.map-hint{font-size:10px;max-width:75%}.auth-box{padding:20px}}
+</style>
 </head>
 <body>
-  <header>
-    <div class="logo">✦ AURELITH<span> CITY</span></div>
-    <div class="online">● Dunia virtual aktif</div>
-  </header>
+<header>
+  <div class="brand"><div class="logo">A</div><div>AURELITH CITY<small>LIVE YOUR OWN STORY</small></div></div>
+  <div class="header-right">
+    <div class="pill"><span style="color:var(--green)">●</span> Kota aktif</div>
+    <div id="headerUser" class="pill">Pengunjung</div>
+    <button id="headerAuth" class="secondary" onclick="showAuth()">Masuk</button>
+    <button id="logoutBtn" class="secondary hidden" onclick="logout()">Keluar</button>
+  </div>
+</header>
 
-  <main>
-    <section class="welcome">
-      <h1>Bangun kehidupanmu sendiri.</h1>
-      <p>Setiap keputusan membentuk masa depanmu di Aurelith.</p>
-    </section>
-
-    <section class="stats">
-      <div class="stat"><small>Populasi kota</small><strong id="population">1.284</strong></div>
-      <div class="stat"><small>Ekonomi kota</small><strong id="economy">Rp 2,4 M</strong></div>
-      <div class="stat"><small>Bisnis aktif</small><strong>48</strong></div>
-      <div class="stat"><small>Aktivitas hari ini</small><strong id="activities">326</strong></div>
-    </section>
-
-    <section class="layout">
-      <div class="panel">
-        <h2>🗺️ Jelajahi Aurelith</h2>
-        <div class="city">
-          <button class="district d1" onclick="visit('Pusat Kota')">🏛️<small>PUSAT KOTA</small></button>
-          <button class="district d2" onclick="visit('Distrik Bisnis')">🏢<small>BISNIS</small></button>
-          <button class="district d3" onclick="visit('Pasar')">🏪<small>PASAR</small></button>
-          <button class="district d4" onclick="visit('Taman Kota')">🌳<small>TAMAN</small></button>
-          <div class="city-label" id="location">📍 Lokasi: Alun-Alun Aurelith</div>
-        </div>
-        <p class="muted">Pilih bangunan untuk menjelajahi distrik kota.</p>
+<section id="authScreen" class="auth-screen">
+  <div class="auth-box">
+    <div class="auth-title">
+      <div class="logo">A</div>
+      <h1>Mulai hidupmu di Aurelith</h1>
+      <p class="muted">Satu kota. Banyak kemungkinan. Ceritamu sendiri.</p>
+    </div>
+    <div class="tabs">
+      <button id="loginTab" class="active" onclick="setAuthMode('login')">Masuk</button>
+      <button id="registerTab" onclick="setAuthMode('register')">Daftar warga</button>
+    </div>
+    <form id="authForm">
+      <div id="displayNameField" class="field hidden">
+        <label>Nama karakter</label>
+        <input id="displayName" maxlength="30" placeholder="Nama yang terlihat di kota">
       </div>
-
-      <div>
-        <div class="panel">
-          <h2>👤 Profil Warga</h2>
-          <div class="profile">
-            <div class="avatar">🧑‍💼</div>
-            <div>
-              <strong>Warga Baru</strong>
-              <div class="muted">Level 1 · Penduduk Aurelith</div>
-            </div>
-          </div>
-          <p class="muted">Pengalaman · 35 / 100 XP</p>
-          <div class="progress"><div></div></div>
-          <p>💰 Saldo: <strong id="balance">Rp 1.000.000</strong></p>
-          <p>⚡ Energi: <strong id="energy">100 / 100</strong></p>
-          <div class="actions">
-            <button onclick="work()">💼 Bekerja</button>
-            <button class="secondary" onclick="rest()">🛌 Istirahat</button>
-          </div>
-        </div>
-
-        <div class="panel feed">
-          <h2>🌐 Aktivitas Kota</h2>
-          <div id="feed">
-            <div class="event">🏙️ Aurelith City siap menyambut warga baru.</div>
-            <div class="event">🏪 Pasar kota sedang beroperasi.</div>
-            <div class="event">🤖 Warga virtual menjalani rutinitas harian.</div>
-          </div>
-        </div>
+      <div class="field">
+        <label id="identifierLabel">Username atau email</label>
+        <input id="identifier" autocomplete="username" required placeholder="Masukkan username atau email">
       </div>
-    </section>
-  </main>
+      <div id="emailField" class="field hidden">
+        <label>Email</label>
+        <input id="email" type="email" autocomplete="email" placeholder="nama@email.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="password" type="password" minlength="8" maxlength="128" autocomplete="current-password" required placeholder="Minimal 8 karakter">
+      </div>
+      <button id="authSubmit" class="primary full" type="submit">Masuk ke kota →</button>
+      <div id="authNotice" class="notice hidden"></div>
+    </form>
+    <p class="muted small" style="text-align:center;margin:18px 0 0">Dengan masuk, kamu memulai perjalanan virtualmu sendiri.</p>
+  </div>
+</section>
 
-  <footer>AURELITH CITY · A WORLD THAT NEVER STOPS</footer>
+<main id="gameScreen" class="hidden">
+  <div class="welcome">
+    <div><h1>Selamat datang di Aurelith.</h1><p>Bangun kehidupanmu, temukan pekerjaan, dan jelajahi kota.</p></div>
+    <div class="pill">📍 Aurelith Central District</div>
+  </div>
+  <div class="layout">
+    <div style="display:grid;gap:16px;min-width:0">
+      <section class="panel">
+        <div class="panel-head">
+          <div><h2>🗺️ Peta kota</h2><div class="muted small" style="margin-top:5px">Klik lokasi untuk memindahkan karaktermu.</div></div>
+          <span class="pill" id="coordLabel">X: 600 · Y: 400</span>
+        </div>
+        <div class="map-wrap">
+          <canvas id="cityMap" width="1200" height="800" aria-label="Peta kota Aurelith"></canvas>
+          <div class="map-label">AURELITH · DISTRICT 01</div>
+          <div class="map-hint">🖱️ Klik peta untuk bergerak · Bangunan berwarna adalah lokasi kota.</div>
+        </div>
+        <div class="map-footer">
+          <div class="legend"><span>Warga</span><span>Bangunan</span><span>Taman</span></div>
+          <span class="muted small" id="mapStatus">Kota siap dijelajahi</span>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>📋 Aktivitas warga</h2><span class="pill">Status langsung</span></div>
+        <div class="card-body" id="activityList">
+          <div class="activity-row"><div class="activity-icon">🏙️</div><div><strong>Selamat datang di kota</strong><small>Mulai dengan memilih pekerjaanmu.</small></div></div>
+        </div>
+      </section>
+    </div>
+    <aside class="side">
+      <section class="panel profile-panel">
+        <div class="panel-head"><h2>👤 Profil karakter</h2><span class="pill">Warga</span></div>
+        <div class="card-body">
+          <div class="profile-top"><div class="avatar">🧑‍💼</div><div><div id="characterName" class="profile-name">Warga Aurelith</div><div id="usernameLabel" class="muted small">@warga</div><div class="small" style="color:var(--green);margin-top:5px">● Terhubung</div></div></div>
+          <div class="stat"><div class="stat-top"><span>⚡ Energi</span><strong id="energyText">100/100</strong></div><div class="bar"><i id="energyBar"></i></div></div>
+          <div class="stat"><div class="stat-top"><span>😊 Suasana hati</span><strong id="moodText">100/100</strong></div><div class="bar"><i id="moodBar" style="background:#8eabff"></i></div></div>
+          <div class="muted small">Saldo saat ini</div><div class="money" id="moneyText">₳ 1.000</div>
+          <div class="stat-grid"><div class="mini-stat"><span class="muted small">Koordinat X</span><strong id="xText">600</strong></div><div class="mini-stat"><span class="muted small">Koordinat Y</span><strong id="yText">400</strong></div></div>
+          <div class="notice" id="currentActivity">Aktivitas: Menjelajahi kota</div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>💼 Pusat pekerjaan</h2></div>
+        <div class="card-body">
+          <div class="field"><label>Pilih pekerjaan</label><select id="jobSelect"><option value="">Memuat daftar pekerjaan…</option></select></div>
+          <div id="jobInfo" class="job-desc">Pilih pekerjaan untuk melihat informasi gaji.</div>
+          <button id="workBtn" class="primary full" onclick="work()" disabled>Mulai bekerja →</button>
+          <div class="notice">💡 Bekerja menambah uang virtual dan menggunakan energi. Batas sistem: satu kali setiap 60 menit.</div>
+          <div id="workNotice" class="notice hidden"></div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>✨ Aktivitas cepat</h2></div>
+        <div class="card-body" style="display:grid;gap:9px">
+          <button class="secondary full" onclick="goTo(600,400,'Pusat kota')">🏛️ Pergi ke pusat kota</button>
+          <button class="secondary full" onclick="goTo(270,230,'Taman Aurelith')">🌳 Kunjungi taman</button>
+          <button class="secondary full" onclick="goTo(880,250,'Kawasan bisnis')">🏢 Kawasan bisnis</button>
+          <button class="secondary full" onclick="refreshMe()">↻ Perbarui data warga</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+</main>
+<div class="footer">AURELITH CITY · A living virtual world</div>
 
-  <script>
-    let balance = 1000000;
-    let energy = 100;
+<script>
+const API = "/api";
+const $ = id => document.getElementById(id);
+let authMode = "login";
+let token = localStorage.getItem("aurelith_token") || "";
+let currentUser = null;
+let character = null;
+let jobs = [];
+let target = null;
+let animation = null;
+let lastPoint = {x:600,y:400};
+let busy = false;
 
-    function addEvent(message) {
-      const feed = document.getElementById("feed");
-      const item = document.createElement("div");
-      item.className = "event";
-      item.textContent = message;
-      feed.prepend(item);
+function setAuthMode(mode) {
+  authMode = mode;
+  $("loginTab").classList.toggle("active",mode==="login");
+  $("registerTab").classList.toggle("active",mode==="register");
+  $("displayNameField").classList.toggle("hidden",mode!=="register");
+  $("emailField").classList.toggle("hidden",mode!=="register");
+  $("identifierLabel").textContent = mode==="register" ? "Username" : "Username atau email";
+  $("identifier").placeholder = mode==="register" ? "3–20 karakter, huruf/angka/_" : "Masukkan username atau email";
+  $("password").autocomplete = mode==="register" ? "new-password" : "current-password";
+  $("authSubmit").textContent = mode==="register" ? "Daftar dan masuk →" : "Masuk ke kota →";
+  showNotice("authNotice","");
+}
+function showNotice(id,message,type="") {
+  const el=$(id);
+  el.textContent=message;
+  el.classList.toggle("hidden",!message);
+  el.classList.toggle("error",type==="error");
+  el.classList.toggle("success",type==="success");
+}
+function showAuth() {
+  $("authScreen").classList.remove("hidden");
+  $("gameScreen").classList.add("hidden");
+}
+function showGame() {
+  $("authScreen").classList.add("hidden");
+  $("gameScreen").classList.remove("hidden");
+  $("headerAuth").classList.add("hidden");
+  $("logoutBtn").classList.remove("hidden");
+}
+async function api(path,options={}) {
+  const headers={"Content-Type":"application/json",...(options.headers||{})};
+  if(token) headers.Authorization="Bearer "+token;
+  const response=await fetch(API+path,{...options,headers});
+  const data=await response.json().catch(()=>({error:"Respons server tidak valid."}));
+  if(!response.ok) throw new Error(data.error||"Permintaan gagal ("+response.status+").");
+  return data;
+}
+$("authForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  if(busy)return;
+  busy=true;
+  $("authSubmit").disabled=true;
+  showNotice("authNotice","Memproses permintaan…");
+  try {
+    const identifier=$("identifier").value.trim();
+    const password=$("password").value;
+    let result;
+    if(authMode==="register") {
+      result=await api("/register",{method:"POST",body:JSON.stringify({
+        username:identifier,
+        email:$("email").value.trim(),
+        password,
+        displayName:$("displayName").value.trim()||identifier
+      })});
+    } else {
+      result=await api("/login",{method:"POST",body:JSON.stringify({identifier,password})});
     }
-
-    function visit(place) {
-      document.getElementById("location").textContent = "📍 Lokasi: " + place;
-      addEvent("🚶 Kamu mengunjungi " + place + ".");
+    if(!result.token) throw new Error("Server tidak mengirim token login.");
+    token=result.token;
+    localStorage.setItem("aurelith_token",token);
+    currentUser=result.user;
+    character=result.character;
+    showGame();
+    renderCharacter();
+    await loadJobs();
+    await refreshMe(false);
+    addActivity("👋","Berhasil masuk ke Aurelith City","Karakter siap menjalani aktivitas.");
+  } catch(error) {
+    showNotice("authNotice",error.message,"error");
+  } finally {
+    busy=false;
+    $("authSubmit").disabled=false;
+  }
+});
+function formatMoney(value){return "₳ "+Number(value||0).toLocaleString("id-ID")}
+function renderCharacter(){
+  if(!character)return;
+  $("characterName").textContent=character.displayName||"Warga Aurelith";
+  $("usernameLabel").textContent="@"+(currentUser?.username||"warga");
+  $("moneyText").textContent=formatMoney(character.money);
+  $("energyText").textContent=(character.energy??100)+"/100";
+  $("moodText").textContent=(character.mood??100)+"/100";
+  $("energyBar").style.width=Math.max(0,Math.min(100,Number(character.energy??100)))+"%";
+  $("moodBar").style.width=Math.max(0,Math.min(100,Number(character.mood??100)))+"%";
+  $("xText").textContent=Math.round(character.x??600);
+  $("yText").textContent=Math.round(character.y??400);
+  $("coordLabel").textContent="X: "+Math.round(character.x??600)+" · Y: "+Math.round(character.y??400);
+  $("currentActivity").textContent="Aktivitas: "+(character.currentActivity||"Menjelajahi kota");
+  lastPoint={x:Number(character.x??600),y:Number(character.y??400)};
+  drawMap();
+}
+async function loadJobs(){
+  const result=await api("/jobs");
+  jobs=result.jobs||[];
+  const select=$("jobSelect");
+  select.innerHTML="";
+  if(!jobs.length) {
+    select.add(new Option("Belum ada pekerjaan",""));
+    $("jobInfo").textContent="Daftar pekerjaan belum tersedia di database.";
+    $("workBtn").disabled=true;
+    return;
+  }
+  select.add(new Option("Pilih pekerjaan…",""));
+  jobs.forEach(job=>select.add(new Option(job.name+" — "+formatMoney(job.salary),job.id)));
+  $("workBtn").disabled=false;
+  updateJobInfo();
+}
+function updateJobInfo(){
+  const job=jobs.find(item=>item.id===$("jobSelect").value);
+  $("jobInfo").textContent=job
+    ? "Gaji: "+formatMoney(job.salary)+". Pilih pekerjaan ini untuk memperoleh uang virtual."
+    : "Pilih pekerjaan untuk melihat informasi gaji.";
+}
+$("jobSelect").addEventListener("change",updateJobInfo);
+async function work(){
+  if(!token)return showAuth();
+  const jobId=$("jobSelect").value;
+  if(!jobId)return showNotice("workNotice","Pilih pekerjaan terlebih dahulu.","error");
+  $("workBtn").disabled=true;
+  showNotice("workNotice","Sedang memproses pekerjaan…");
+  try{
+    const result=await api("/work",{method:"POST",body:JSON.stringify({jobId})});
+    character=result.character;
+    renderCharacter();
+    showNotice("workNotice",result.message||"Pekerjaan selesai.","success");
+    addActivity("💼","Pekerjaan selesai",result.message||"Gaji berhasil diterima.");
+  }catch(error){showNotice("workNotice",error.message,"error")}
+  finally{$("workBtn").disabled=false}
+}
+async function refreshMe(showMessage=true){
+  try{
+    const result=await api("/me");
+    currentUser=result.user;
+    character=result.character;
+    renderCharacter();
+    if(showMessage)addActivity("↻","Data warga diperbarui","Profil tersinkron dengan server.");
+  }catch(error){
+    if(error.message.toLowerCase().includes("sesi")||error.message.toLowerCase().includes("login")){
+      token="";
+      localStorage.removeItem("aurelith_token");
+      showAuth();
     }
-
-    function work() {
-      if (energy < 20) {
-        addEvent("⚠️ Energi tidak cukup. Istirahatlah dahulu.");
-        return;
-      }
-      energy -= 20;
-      balance += 100000;
-      document.getElementById("balance").textContent =
-        "Rp " + balance.toLocaleString("id-ID");
-      document.getElementById("energy").textContent = energy + " / 100";
-      document.getElementById("activities").textContent =
-        Number(document.getElementById("activities").textContent) + 1;
-      addEvent("💼 Kamu bekerja dan memperoleh Rp 100.000.");
+    if(showMessage)showNotice("workNotice",error.message,"error");
+  }
+}
+async function logout(){
+  try{if(token)await api("/logout",{method:"POST",body:"{}"})}catch{}
+  token="";
+  currentUser=null;
+  character=null;
+  localStorage.removeItem("aurelith_token");
+  $("headerAuth").classList.remove("hidden");
+  $("logoutBtn").classList.add("hidden");
+  $("headerUser").textContent="Pengunjung";
+  showAuth();
+}
+function addActivity(icon,title,detail){
+  const row=document.createElement("div");
+  row.className="activity-row";
+  const ico=document.createElement("div");ico.className="activity-icon";ico.textContent=icon;
+  const content=document.createElement("div");
+  const strong=document.createElement("strong");strong.textContent=title;
+  const small=document.createElement("small");small.textContent=detail;
+  content.append(strong,small);row.append(ico,content);
+  $("activityList").prepend(row);
+  while($("activityList").children.length>6)$("activityList").lastElementChild.remove();
+}
+const canvas=$("cityMap");
+const ctx=canvas.getContext("2d");
+const buildings=[
+  {x:100,y:95,w:180,h:105,c:"#bf986b",name:"Balai Kota",icon:"🏛️"},
+  {x:370,y:90,w:145,h:110,c:"#8e9fb5",name:"Klinik",icon:"✚"},
+  {x:660,y:95,w:170,h:100,c:"#c4a36e",name:"Kafe",icon:"☕"},
+  {x:925,y:95,w:175,h:115,c:"#8d9cbd",name:"Kantor",icon:"🏢"},
+  {x:100,y:310,w:170,h:115,c:"#a8a0c7",name:"Perpustakaan",icon:"📚"},
+  {x:390,y:320,w:150,h:105,c:"#d0ad78",name:"Restoran",icon:"🍜"},
+  {x:670,y:315,w:170,h:115,c:"#91a8a0",name:"Toko",icon:"🛍️"},
+  {x:930,y:325,w:160,h:110,c:"#b9a17f",name:"Polisi",icon:"🚓"},
+  {x:115,y:565,w:185,h:105,c:"#c3a77f",name:"Apartemen",icon:"🏠"},
+  {x:430,y:570,w:165,h:100,c:"#8b9fc0",name:"Bank",icon:"🏦"},
+  {x:750,y:565,w:180,h:105,c:"#c2a28c",name:"Pasar",icon:"🏪"}
+];
+const trees=[ [320,245],[350,260],[300,280],[570,225],[600,240],[570,255],[850,250],[880,260],[855,280],[330,500],[365,515],[340,535],[630,485],[650,505],[680,490],[980,510],[1010,525],[975,545],[70,500],[1100,500],[550,720],[600,720],[650,720],[1050,720],[100,730] ];
+function roundedRect(x,y,w,h,r,color){
+  ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();
+}
+function drawMap(){
+  const w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle="#294b43";ctx.fillRect(0,0,w,h);
+  // rumput bertekstur
+  for(let i=0;i<500;i++){
+    const x=(i*137)%w,y=(i*251)%h;
+    ctx.fillStyle=i%2?"#31564a":"#2d5146";
+    ctx.fillRect(x,y,3,3);
+  }
+  // jalan-jalan kota
+  ctx.fillStyle="#b9b8a7";
+  ctx.fillRect(0,255,w,42);ctx.fillRect(0,475,w,42);
+  ctx.fillRect(300,0,43,h);ctx.fillRect(610,0,43,h);ctx.fillRect(880,0,43,h);
+  ctx.fillStyle="#d8d3bc";
+  for(let x=0;x<w;x+=42){ctx.fillRect(x,275,22,2);ctx.fillRect(x,495,22,2)}
+  for(let y=0;y<h;y+=42){ctx.fillRect(320,y,2,20);ctx.fillRect(630,y,2,20);ctx.fillRect(900,y,2,20)}
+  // plaza
+  roundedRect(500,355,210,125,15,"#b6b8a6");
+  roundedRect(520,375,170,85,10,"#83a68b");
+  ctx.fillStyle="#b8d4c5";ctx.beginPath();ctx.arc(605,417,25,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#e3eee0";ctx.beginPath();ctx.arc(605,417,14,0,Math.PI*2);ctx.fill();
+  // taman
+  roundedRect(45,165,235,75,13,"#3e7052");
+  roundedRect(690,205,155,45,12,"#3e7052");
+  roundedRect(50,525,65,180,12,"#3e7052");
+  trees.forEach(([x,y],i)=>{
+    ctx.fillStyle="#183c31";ctx.beginPath();ctx.ellipse(x+3,y+7,13,9,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=i%2?"#6fa56f":"#82b77b";ctx.beginPath();ctx.arc(x,y,12,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#a8d19a";ctx.beginPath();ctx.arc(x-3,y-4,5,0,Math.PI*2);ctx.fill();
+  });
+  buildings.forEach(b=>{
+    // bayangan dan gedung
+    roundedRect(b.x+5,b.y+9,b.w,b.h,8,"#1d392f");
+    roundedRect(b.x,b.y,b.w,b.h,8,b.c);
+    roundedRect(b.x+8,b.y+8,b.w-16,14,4,"#ffffff35");
+    ctx.fillStyle="#f0e6cb";
+    const cols=Math.max(2,Math.floor(b.w/35));
+    for(let i=0;i<cols;i++){
+      const wx=b.x+17+i*((b.w-34)/cols);
+      ctx.fillRect(wx,b.y+32,15,18);ctx.fillRect(wx,b.y+60,15,18);
     }
-
-    function rest() {
-      energy = Math.min(100, energy + 40);
-      document.getElementById("energy").textContent = energy + " / 100";
-      addEvent("🛌 Kamu beristirahat dan memulihkan energi.");
+    ctx.fillStyle="#f5f0dc";ctx.fillRect(b.x+b.w/2-12,b.y+b.h-20,24,20);
+    ctx.textAlign="center";ctx.font="23px sans-serif";ctx.fillText(b.icon,b.x+b.w/2,b.y-9);
+    ctx.font="bold 13px sans-serif";ctx.fillStyle="#f4f1dc";ctx.fillText(b.name,b.x+b.w/2,b.y+b.h+19);
+  });
+  // NPC warga dekoratif
+  const npcs=[
+    {x:355,y:310,c:"#e9bd72"},{x:580,y:300,c:"#91c6eb"},{x:720,y:530,c:"#e8a6a6"},
+    {x:840,y:290,c:"#d4b5ef"},{x:280,y:455,c:"#f0d18b"},{x:710,y:285,c:"#9dd7ba"}
+  ];
+  npcs.forEach(n=>{
+    ctx.fillStyle="#10241e";ctx.beginPath();ctx.ellipse(n.x,n.y+7,8,5,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=n.c;ctx.beginPath();ctx.arc(n.x,n.y,7,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#f3d1ad";ctx.beginPath();ctx.arc(n.x,n.y-8,5,0,Math.PI*2);ctx.fill();
+  });
+  // pemain
+  const p=character?{x:Number(character.x??600),y:Number(character.y??400)}:lastPoint;
+  ctx.fillStyle="#101e19";ctx.beginPath();ctx.ellipse(p.x,p.y+13,13,7,0,0,Math.PI*2);ctx.fill();
+  if(target){
+    ctx.strokeStyle="#f4d17f";ctx.lineWidth=3;ctx.beginPath();ctx.arc(target.x,target.y,13,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(target.x-6,target.y);ctx.lineTo(target.x+6,target.y);ctx.moveTo(target.x,target.y-6);ctx.lineTo(target.x,target.y+6);ctx.stroke();
+  }
+  ctx.fillStyle="#f2c66c";ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#f4d9b8";ctx.beginPath();ctx.arc(p.x,p.y-10,7,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#25344a";ctx.fillRect(p.x-6,p.y-3,12,10);
+  ctx.fillStyle="#fff4d5";ctx.font="bold 12px sans-serif";ctx.textAlign="center";
+  ctx.fillText(character?.displayName||"Kamu",p.x,p.y-25);
+}
+canvas.addEventListener("click",event=>{
+  if(!token||!character)return;
+  const rect=canvas.getBoundingClientRect();
+  const x=(event.clientX-rect.left)*canvas.width/rect.width;
+  const y=(event.clientY-rect.top)*canvas.height/rect.height;
+  goTo(x,y,"Lokasi baru");
+});
+async function goTo(x,y,label){
+  if(!token||!character){showAuth();return}
+  const start={x:Number(character.x??600),y:Number(character.y??400)};
+  const end={x:Math.max(25,Math.min(1175,x)),y:Math.max(25,Math.min(775,y))};
+  target=end;
+  if(animation)cancelAnimationFrame(animation);
+  const duration=650;
+  const begin=performance.now();
+  $("mapStatus").textContent="Bergerak menuju "+label+"…";
+  function frame(now){
+    const t=Math.min(1,(now-begin)/duration);
+    const ease=t*t*(3-2*t);
+    lastPoint={x:start.x+(end.x-start.x)*ease,y:start.y+(end.y-start.y)*ease};
+    const old=character;
+    character={...old,x:lastPoint.x,y:lastPoint.y};
+    drawMap();
+    if(t<1){animation=requestAnimationFrame(frame)}
+    else{
+      character.x=Math.round(end.x);character.y=Math.round(end.y);
+      lastPoint={x:character.x,y:character.y};
+      target=null;renderCharacter();
+      $("mapStatus").textContent="Tiba di "+label;
+      api("/move",{method:"POST",body:JSON.stringify({x:character.x,y:character.y})})
+        .then(()=>addActivity("📍","Berpindah lokasi","Kamu tiba di "+label+"."))
+        .catch(error=>showNotice("workNotice","Gerakan lokal berhasil, tetapi server gagal menyimpan posisi: "+error.message,"error"));
     }
-  </script>
+  }
+  animation=requestAnimationFrame(frame);
+}
+async function boot(){
+  drawMap();
+  if(!token)return;
+  try{
+    const result=await api("/me");
+    currentUser=result.user;character=result.character;
+    showGame();renderCharacter();
+    await loadJobs();
+    $("headerUser").textContent="@"+(currentUser.username||"warga");
+  }catch{
+    token="";localStorage.removeItem("aurelith_token");
+    showAuth();
+  }
+}
+boot();
+</script>
 </body>
 </html>
