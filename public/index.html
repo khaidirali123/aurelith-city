@@ -3,518 +3,467 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aurelith City — Your Life, Your City</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aurelith City — Living RPG</title>
 <style>
-:root {
-  --bg:#0b1020; --panel:#121a2d; --panel2:#19243a;
-  --line:#293650; --text:#edf3ff; --muted:#8e9db7;
-  --gold:#f4c76b; --green:#6ee7ad; --blue:#76a9ff; --red:#ff8585;
-}
+:root{--bg:#10151c;--panel:#19232e;--line:#30404e;--gold:#e5bd73;--text:#e9f0f5;--muted:#91a1af;--green:#77b88b}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:14px Inter,system-ui,Arial,sans-serif}
-button,input,select{font:inherit}
-button{cursor:pointer;border:0;border-radius:10px;padding:11px 14px;font-weight:700;transition:.15s}
-button:hover{filter:brightness(1.12);transform:translateY(-1px)}
-.primary{background:var(--gold);color:#1b2030}
-.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
-.danger{background:#47232e;color:#ffb5bd}
+body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,sans-serif}
+button,input{font:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}
+.hidden{display:none!important}
 .muted{color:var(--muted)}
 .small{font-size:12px}
-.hidden{display:none!important}
-header{height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);background:#0e1527;gap:16px}
-.brand{display:flex;align-items:center;gap:11px;font-weight:900;letter-spacing:.5px}
-.logo{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,#f8d68a,#b7833f);color:#1a2030;font-size:20px}
-.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:2px;margin-top:3px}
-.header-right{display:flex;align-items:center;gap:10px}
-.pill{padding:8px 11px;border:1px solid var(--line);background:var(--panel);border-radius:999px;font-size:12px}
-main{max-width:1600px;margin:auto;padding:20px}
-.welcome{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:20px}
-h1{font-size:25px;margin:0 0 7px}
-h2{font-size:15px;margin:0}
-.welcome p{margin:0;color:var(--muted)}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:18px;align-items:start}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
-.panel-head{padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
-.map-wrap{position:relative;background:#172b2b;overflow:hidden}
-#cityMap{display:block;width:100%;height:auto;aspect-ratio:1.5;cursor:crosshair;touch-action:manipulation}
-.map-hint{position:absolute;left:12px;bottom:12px;background:#0b1020d9;border:1px solid #ffffff25;border-radius:10px;padding:9px 12px;font-size:11px;color:#dce8e8;pointer-events:none}
-.map-label{position:absolute;right:12px;top:12px;padding:7px 10px;border-radius:8px;background:#0b1020d9;font-size:11px}
-.map-footer{padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.legend{display:flex;gap:13px;flex-wrap:wrap;color:var(--muted);font-size:11px}
-.legend span:before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px}
-.legend span:nth-child(2):before{background:var(--gold)}
-.legend span:nth-child(3):before{background:#79c9f7}
-.side{display:grid;gap:15px}
-.card-body{padding:16px}
-.profile-top{display:flex;align-items:center;gap:12px;margin-bottom:17px}
-.avatar{width:54px;height:54px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(135deg,#5c739a,#283954);font-size:27px}
-.profile-name{font-size:16px;font-weight:800;margin-bottom:4px}
-.stat{margin:14px 0}
-.stat-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:7px}
-.bar{height:7px;background:#29354b;border-radius:99px;overflow:hidden}
-.bar i{display:block;height:100%;border-radius:99px;background:var(--green);width:100%;transition:width .3s}
-.money{color:var(--gold);font-size:25px;font-weight:900}
-.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}
-.mini-stat{background:var(--panel2);padding:12px;border-radius:11px}
-.mini-stat strong{display:block;font-size:17px;margin-top:6px}
-select,input{width:100%;padding:12px;background:#0d1527;border:1px solid var(--line);border-radius:10px;color:var(--text);outline:none}
-select:focus,input:focus{border-color:var(--blue)}
-label{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}
-.field{margin-bottom:13px}
-.full{width:100%}
-.job-desc{font-size:12px;color:var(--muted);line-height:1.5;margin:10px 0 14px}
-.notice{padding:11px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;font-size:12px;line-height:1.5;margin-top:12px;overflow-wrap:anywhere}
-.notice.error{border-color:#783844;color:#ffb8be}
-.notice.success{border-color:#285e4c;color:#a2f5cf}
-.activity-row{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
-.activity-row:last-child{border-bottom:0}
-.activity-icon{width:35px;height:35px;display:grid;place-items:center;background:var(--panel2);border-radius:10px;font-size:17px}
-.activity-row strong{display:block;font-size:12px;margin-bottom:4px}
-.activity-row small{color:var(--muted)}
-.auth-screen{min-height:calc(100vh - 68px);display:grid;place-items:center;padding:24px}
-.auth-box{width:min(100%,440px);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:26px;box-shadow:0 25px 90px #0005}
-.auth-title{text-align:center;margin-bottom:24px}
-.auth-title .logo{margin:0 auto 12px;width:54px;height:54px;font-size:27px}
-.auth-title h1{font-size:23px}
-.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;background:#0c1425;border-radius:11px;margin-bottom:20px}
-.tabs button{background:transparent;color:var(--muted)}
-.tabs button.active{background:var(--panel2);color:var(--text)}
-.footer{text-align:center;padding:20px;color:var(--muted);font-size:11px}
-@media(max-width:950px){.layout{grid-template-columns:1fr}.side{grid-template-columns:repeat(2,minmax(0,1fr))}.side .profile-panel{grid-column:1/-1}}
-@media(max-width:600px){header{padding:0 13px;height:60px}.header-right .pill{display:none}main{padding:13px}.welcome{align-items:flex-start;flex-direction:column}h1{font-size:22px}.side{grid-template-columns:1fr}.side .profile-panel{grid-column:auto}#cityMap{aspect-ratio:1/1}.map-hint{font-size:10px;max-width:75%}.auth-box{padding:20px}}
+.brand{font-weight:900;letter-spacing:2px;color:var(--gold)}
+.brand span{display:block;font-size:10px;letter-spacing:4px;color:var(--muted);margin-top:3px}
+header{height:66px;padding:0 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;background:#131b24}
+.header-right{display:flex;gap:10px;align-items:center}
+.pill{border:1px solid var(--line);border-radius:30px;padding:7px 11px;font-size:12px}
+button.primary{background:var(--gold);color:#1b2024;border:0;border-radius:8px;padding:11px 15px;font-weight:800}
+button.secondary{background:#24313d;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+button.danger{background:#472d30;color:#ffcece;border:1px solid #75464a;border-radius:8px;padding:9px 12px}
+input{width:100%;background:#101820;border:1px solid var(--line);border-radius:8px;padding:12px;color:white;outline:none}
+input:focus{border-color:var(--gold)}
+label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+.auth-wrap{min-height:calc(100vh - 66px);display:grid;place-items:center;padding:24px}
+.auth-card{width:min(440px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:0 20px 70px #0005}
+.auth-card h1{font-size:27px;margin:24px 0 5px}
+.auth-card .field{margin:16px 0}
+.auth-actions{display:flex;gap:8px;margin-top:20px}
+.auth-actions button{flex:1}
+#authMessage{color:#ffb5a8;min-height:20px;margin-top:12px;overflow-wrap:anywhere}
+main{max-width:1600px;margin:auto;padding:16px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;min-width:0}
+.panel-head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.panel-head h2{font-size:14px;margin:0}
+.map-wrap{padding:10px;background:#263a34}
+#map{width:100%;display:block;aspect-ratio:3/2;border-radius:7px;cursor:crosshair;touch-action:manipulation}
+.map-help{padding:10px 14px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.pad{padding:15px}
+.profile-top{display:flex;gap:12px;align-items:center}
+.avatar{width:48px;height:48px;flex-shrink:0;border-radius:12px;background:#314454;display:grid;place-items:center;font-size:24px;border:1px solid #526477}
+.profile-top h3{margin:0 0 3px;font-size:16px;overflow-wrap:anywhere}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:17px}
+.stat{background:#111a22;border:1px solid #283641;border-radius:9px;padding:10px}
+.stat span{display:block;font-size:11px;color:var(--muted)}
+.stat strong{display:block;margin-top:4px;font-size:18px}
+.section-title{font-size:12px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin:0 0 12px}
+.job-list{display:flex;flex-direction:column;gap:8px}
+.job{border:1px solid var(--line);border-radius:9px;padding:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.job strong{display:block;font-size:13px}
+.job small{color:var(--muted)}
+.job button{padding:7px 9px;font-size:12px;flex-shrink:0}
+.feed{display:flex;flex-direction:column;gap:10px}
+.feed-item{border-bottom:1px solid var(--line);padding-bottom:9px;overflow-wrap:anywhere}
+.feed-item:last-child{border:0;padding:0}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:7px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);max-width:90%;padding:12px 16px;border-radius:10px;background:#263541;border:1px solid #526574;box-shadow:0 8px 30px #0007;z-index:10}
+footer{padding:18px;text-align:center;color:var(--muted);font-size:11px}
+@media(max-width:900px){main{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.profile-panel{grid-column:1/-1}}
+@media(max-width:560px){header{padding:0 12px}.header-right .pill{display:none}main{padding:9px;gap:10px}.side{display:flex}.auth-card{padding:20px}.panel-head{padding:12px}.map-wrap{padding:5px}.map-help{font-size:11px}}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand"><div class="logo">A</div><div>AURELITH CITY<small>LIVE YOUR OWN STORY</small></div></div>
+  <div class="brand">AURELITH <span>THE LIVING CITY</span></div>
   <div class="header-right">
-    <div class="pill"><span style="color:var(--green)">●</span> Kota aktif</div>
-    <div id="headerUser" class="pill">Pengunjung</div>
-    <button id="headerAuth" class="secondary" onclick="showAuth()">Masuk</button>
-    <button id="logoutBtn" class="secondary hidden" onclick="logout()">Keluar</button>
+    <span class="pill"><span class="dot"></span><span id="connection">Memeriksa server...</span></span>
+    <button id="logoutBtn" class="secondary hidden">Keluar</button>
   </div>
 </header>
 
-<section id="authScreen" class="auth-screen">
-  <div class="auth-box">
-    <div class="auth-title">
-      <div class="logo">A</div>
-      <h1>Mulai hidupmu di Aurelith</h1>
-      <p class="muted">Satu kota. Banyak kemungkinan. Ceritamu sendiri.</p>
-    </div>
-    <div class="tabs">
-      <button id="loginTab" class="active" onclick="setAuthMode('login')">Masuk</button>
-      <button id="registerTab" onclick="setAuthMode('register')">Daftar warga</button>
-    </div>
+<section id="auth" class="auth-wrap">
+  <div class="auth-card">
+    <div class="brand">AURELITH CITY<span>YOUR STORY STARTS HERE</span></div>
+    <h1 id="authTitle">Masuk ke kota</h1>
+    <p class="muted" id="authSubtitle">Lanjutkan perjalananmu di Aurelith.</p>
     <form id="authForm">
-      <div id="displayNameField" class="field hidden">
-        <label>Nama karakter</label>
-        <input id="displayName" maxlength="30" placeholder="Nama yang terlihat di kota">
+      <div id="registerFields" class="hidden">
+        <div class="field"><label for="displayName">Nama karakter</label><input id="displayName" maxlength="30" autocomplete="nickname" placeholder="Nama warga"></div>
+        <div class="field"><label for="username">Username</label><input id="username" minlength="3" maxlength="20" autocomplete="username" placeholder="username"></div>
+        <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="email" placeholder="nama@email.com"></div>
       </div>
-      <div class="field">
-        <label id="identifierLabel">Username atau email</label>
-        <input id="identifier" autocomplete="username" required placeholder="Masukkan username atau email">
+      <div id="loginFields">
+        <div class="field"><label for="identifier">Username atau email</label><input id="identifier" autocomplete="username" required placeholder="Masukkan username/email"></div>
       </div>
-      <div id="emailField" class="field hidden">
-        <label>Email</label>
-        <input id="email" type="email" autocomplete="email" placeholder="nama@email.com">
+      <div class="field"><label for="password">Password</label><input id="password" type="password" minlength="8" maxlength="128" autocomplete="current-password" required placeholder="Minimal 8 karakter"></div>
+      <div class="auth-actions">
+        <button class="primary" id="submitAuth" type="submit">Masuk</button>
+        <button class="secondary" id="switchAuth" type="button">Daftar</button>
       </div>
-      <div class="field">
-        <label>Password</label>
-        <input id="password" type="password" minlength="8" maxlength="128" autocomplete="current-password" required placeholder="Minimal 8 karakter">
-      </div>
-      <button id="authSubmit" class="primary full" type="submit">Masuk ke kota →</button>
-      <div id="authNotice" class="notice hidden"></div>
+      <div id="authMessage" role="status"></div>
     </form>
-    <p class="muted small" style="text-align:center;margin:18px 0 0">Dengan masuk, kamu memulai perjalanan virtualmu sendiri.</p>
+    <p class="muted small">Dunia kota virtual · RPG · Ekonomi · Pekerjaan</p>
   </div>
 </section>
 
-<main id="gameScreen" class="hidden">
-  <div class="welcome">
-    <div><h1>Selamat datang di Aurelith.</h1><p>Bangun kehidupanmu, temukan pekerjaan, dan jelajahi kota.</p></div>
-    <div class="pill">📍 Aurelith Central District</div>
-  </div>
-  <div class="layout">
-    <div style="display:grid;gap:16px;min-width:0">
-      <section class="panel">
-        <div class="panel-head">
-          <div><h2>🗺️ Peta kota</h2><div class="muted small" style="margin-top:5px">Klik lokasi untuk memindahkan karaktermu.</div></div>
-          <span class="pill" id="coordLabel">X: 600 · Y: 400</span>
-        </div>
-        <div class="map-wrap">
-          <canvas id="cityMap" width="1200" height="800" aria-label="Peta kota Aurelith"></canvas>
-          <div class="map-label">AURELITH · DISTRICT 01</div>
-          <div class="map-hint">🖱️ Klik peta untuk bergerak · Bangunan berwarna adalah lokasi kota.</div>
-        </div>
-        <div class="map-footer">
-          <div class="legend"><span>Warga</span><span>Bangunan</span><span>Taman</span></div>
-          <span class="muted small" id="mapStatus">Kota siap dijelajahi</span>
-        </div>
-      </section>
-      <section class="panel">
-        <div class="panel-head"><h2>📋 Aktivitas warga</h2><span class="pill">Status langsung</span></div>
-        <div class="card-body" id="activityList">
-          <div class="activity-row"><div class="activity-icon">🏙️</div><div><strong>Selamat datang di kota</strong><small>Mulai dengan memilih pekerjaanmu.</small></div></div>
-        </div>
-      </section>
+<main id="game" class="hidden">
+  <section class="panel">
+    <div class="panel-head">
+      <div><h2>Distrik Pusat Aurelith</h2><div class="muted small" id="cityClock">Kota menunggu kedatanganmu</div></div>
+      <span class="pill">WORLD 01</span>
     </div>
-    <aside class="side">
-      <section class="panel profile-panel">
-        <div class="panel-head"><h2>👤 Profil karakter</h2><span class="pill">Warga</span></div>
-        <div class="card-body">
-          <div class="profile-top"><div class="avatar">🧑‍💼</div><div><div id="characterName" class="profile-name">Warga Aurelith</div><div id="usernameLabel" class="muted small">@warga</div><div class="small" style="color:var(--green);margin-top:5px">● Terhubung</div></div></div>
-          <div class="stat"><div class="stat-top"><span>⚡ Energi</span><strong id="energyText">100/100</strong></div><div class="bar"><i id="energyBar"></i></div></div>
-          <div class="stat"><div class="stat-top"><span>😊 Suasana hati</span><strong id="moodText">100/100</strong></div><div class="bar"><i id="moodBar" style="background:#8eabff"></i></div></div>
-          <div class="muted small">Saldo saat ini</div><div class="money" id="moneyText">₳ 1.000</div>
-          <div class="stat-grid"><div class="mini-stat"><span class="muted small">Koordinat X</span><strong id="xText">600</strong></div><div class="mini-stat"><span class="muted small">Koordinat Y</span><strong id="yText">400</strong></div></div>
-          <div class="notice" id="currentActivity">Aktivitas: Menjelajahi kota</div>
+    <div class="map-wrap"><canvas id="map" width="1200" height="800" aria-label="Peta kota. Klik tujuan untuk bergerak."></canvas></div>
+    <div class="map-help"><span>⌖ Klik peta untuk bergerak</span><span>Bangunan bertanda memiliki lokasi aktivitas</span></div>
+  </section>
+
+  <aside class="side">
+    <section class="panel profile-panel">
+      <div class="panel-head"><h2>Identitas warga</h2><span class="small muted">PROFILE</span></div>
+      <div class="pad">
+        <div class="profile-top"><div class="avatar">🧑</div><div><h3 id="playerName">Warga Aurelith</h3><div id="playerUser" class="muted small">Warga baru</div></div></div>
+        <div class="stats">
+          <div class="stat"><span>Uang</span><strong id="money">0</strong></div>
+          <div class="stat"><span>Energi</span><strong id="energy">100</strong></div>
+          <div class="stat"><span>Mood</span><strong id="mood">100</strong></div>
+          <div class="stat"><span>Koordinat</span><strong id="position" style="font-size:13px">600, 400</strong></div>
         </div>
-      </section>
-      <section class="panel">
-        <div class="panel-head"><h2>💼 Pusat pekerjaan</h2></div>
-        <div class="card-body">
-          <div class="field"><label>Pilih pekerjaan</label><select id="jobSelect"><option value="">Memuat daftar pekerjaan…</option></select></div>
-          <div id="jobInfo" class="job-desc">Pilih pekerjaan untuk melihat informasi gaji.</div>
-          <button id="workBtn" class="primary full" onclick="work()" disabled>Mulai bekerja →</button>
-          <div class="notice">💡 Bekerja menambah uang virtual dan menggunakan energi. Batas sistem: satu kali setiap 60 menit.</div>
-          <div id="workNotice" class="notice hidden"></div>
-        </div>
-      </section>
-      <section class="panel">
-        <div class="panel-head"><h2>✨ Aktivitas cepat</h2></div>
-        <div class="card-body" style="display:grid;gap:9px">
-          <button class="secondary full" onclick="goTo(600,400,'Pusat kota')">🏛️ Pergi ke pusat kota</button>
-          <button class="secondary full" onclick="goTo(270,230,'Taman Aurelith')">🌳 Kunjungi taman</button>
-          <button class="secondary full" onclick="goTo(880,250,'Kawasan bisnis')">🏢 Kawasan bisnis</button>
-          <button class="secondary full" onclick="refreshMe()">↻ Perbarui data warga</button>
-        </div>
-      </section>
-    </aside>
-  </div>
+        <p class="muted small" id="activity">Aktivitas: Bersantai</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Pusat pekerjaan</h2><span class="small muted">CAREER</span></div>
+      <div class="pad"><p class="muted small">Pilih pekerjaan untuk mendapatkan gaji. Hasil dan aturan mengikuti server.</p><div id="jobs" class="job-list">Memuat pekerjaan...</div></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Catatan perjalanan</h2><span class="small muted">LOG</span></div>
+      <div class="pad"><div id="feed" class="feed"><div class="feed-item muted">Selamat datang di Aurelith City.</div></div></div>
+    </section>
+  </aside>
 </main>
-<div class="footer">AURELITH CITY · A living virtual world</div>
+<footer>AURELITH CITY · Dunia virtual yang terus berkembang</footer>
+<div id="toast" class="hidden" role="status"></div>
 
 <script>
-const API = "/api";
-const $ = id => document.getElementById(id);
-let authMode = "login";
-let token = localStorage.getItem("aurelith_token") || "";
-let currentUser = null;
-let character = null;
-let jobs = [];
-let target = null;
-let animation = null;
-let lastPoint = {x:600,y:400};
-let busy = false;
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const WORLD = {w:1200,h:800};
+  let token = localStorage.getItem("aurelith_token") || "";
+  let isRegister = false;
+  let player = null;
+  let jobs = [];
+  let moving = false;
+  let target = null;
+  let lastToast = 0;
+  let toastTimer = null;
+  let buildings = [];
+  let ambient = [];
 
-function setAuthMode(mode) {
-  authMode = mode;
-  $("loginTab").classList.toggle("active",mode==="login");
-  $("registerTab").classList.toggle("active",mode==="register");
-  $("displayNameField").classList.toggle("hidden",mode!=="register");
-  $("emailField").classList.toggle("hidden",mode!=="register");
-  $("identifierLabel").textContent = mode==="register" ? "Username" : "Username atau email";
-  $("identifier").placeholder = mode==="register" ? "3–20 karakter, huruf/angka/_" : "Masukkan username atau email";
-  $("password").autocomplete = mode==="register" ? "new-password" : "current-password";
-  $("authSubmit").textContent = mode==="register" ? "Daftar dan masuk →" : "Masuk ke kota →";
-  showNotice("authNotice","");
-}
-function showNotice(id,message,type="") {
-  const el=$(id);
-  el.textContent=message;
-  el.classList.toggle("hidden",!message);
-  el.classList.toggle("error",type==="error");
-  el.classList.toggle("success",type==="success");
-}
-function showAuth() {
-  $("authScreen").classList.remove("hidden");
-  $("gameScreen").classList.add("hidden");
-}
-function showGame() {
-  $("authScreen").classList.add("hidden");
-  $("gameScreen").classList.remove("hidden");
-  $("headerAuth").classList.add("hidden");
-  $("logoutBtn").classList.remove("hidden");
-}
-async function api(path,options={}) {
-  const headers={"Content-Type":"application/json",...(options.headers||{})};
-  if(token) headers.Authorization="Bearer "+token;
-  const response=await fetch(API+path,{...options,headers});
-  const data=await response.json().catch(()=>({error:"Respons server tidak valid."}));
-  if(!response.ok) throw new Error(data.error||"Permintaan gagal ("+response.status+").");
-  return data;
-}
-$("authForm").addEventListener("submit",async event=>{
-  event.preventDefault();
-  if(busy)return;
-  busy=true;
-  $("authSubmit").disabled=true;
-  showNotice("authNotice","Memproses permintaan…");
-  try {
-    const identifier=$("identifier").value.trim();
-    const password=$("password").value;
-    let result;
-    if(authMode==="register") {
-      result=await api("/register",{method:"POST",body:JSON.stringify({
-        username:identifier,
-        email:$("email").value.trim(),
-        password,
-        displayName:$("displayName").value.trim()||identifier
-      })});
-    } else {
-      result=await api("/login",{method:"POST",body:JSON.stringify({identifier,password})});
+  function notify(message) {
+    $("toast").textContent = message;
+    $("toast").classList.remove("hidden");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>$("toast").classList.add("hidden"),3500);
+  }
+  function log(message) {
+    const el = document.createElement("div");
+    el.className = "feed-item";
+    const time = new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
+    el.textContent = time + " · " + message;
+    $("feed").prepend(el);
+    while ($("feed").children.length > 8) $("feed").lastElementChild.remove();
+  }
+  function setConnection(message) {$("connection").textContent = message;}
+  function money(value) {
+    return new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Number(value)||0);
+  }
+  async function api(path, options={}) {
+    const headers = new Headers(options.headers || {});
+    if (options.body) headers.set("Content-Type","application/json");
+    if (token) headers.set("Authorization","Bearer "+token);
+    const response = await fetch(path,{...options,headers,cache:"no-store"});
+    const data = await response.json().catch(()=>({error:"Respons server bukan JSON."}));
+    if (!response.ok) {
+      if (response.status===401 && token && path!=="/api/login") {
+        token="";
+        localStorage.removeItem("aurelith_token");
+      }
+      throw new Error(data.error || "Permintaan gagal ("+response.status+").");
     }
-    if(!result.token) throw new Error("Server tidak mengirim token login.");
-    token=result.token;
-    localStorage.setItem("aurelith_token",token);
-    currentUser=result.user;
-    character=result.character;
-    showGame();
-    renderCharacter();
-    await loadJobs();
-    await refreshMe(false);
-    addActivity("👋","Berhasil masuk ke Aurelith City","Karakter siap menjalani aktivitas.");
-  } catch(error) {
-    showNotice("authNotice",error.message,"error");
-  } finally {
-    busy=false;
-    $("authSubmit").disabled=false;
+    return data;
   }
-});
-function formatMoney(value){return "₳ "+Number(value||0).toLocaleString("id-ID")}
-function renderCharacter(){
-  if(!character)return;
-  $("characterName").textContent=character.displayName||"Warga Aurelith";
-  $("usernameLabel").textContent="@"+(currentUser?.username||"warga");
-  $("moneyText").textContent=formatMoney(character.money);
-  $("energyText").textContent=(character.energy??100)+"/100";
-  $("moodText").textContent=(character.mood??100)+"/100";
-  $("energyBar").style.width=Math.max(0,Math.min(100,Number(character.energy??100)))+"%";
-  $("moodBar").style.width=Math.max(0,Math.min(100,Number(character.mood??100)))+"%";
-  $("xText").textContent=Math.round(character.x??600);
-  $("yText").textContent=Math.round(character.y??400);
-  $("coordLabel").textContent="X: "+Math.round(character.x??600)+" · Y: "+Math.round(character.y??400);
-  $("currentActivity").textContent="Aktivitas: "+(character.currentActivity||"Menjelajahi kota");
-  lastPoint={x:Number(character.x??600),y:Number(character.y??400)};
-  drawMap();
-}
-async function loadJobs(){
-  const result=await api("/jobs");
-  jobs=result.jobs||[];
-  const select=$("jobSelect");
-  select.innerHTML="";
-  if(!jobs.length) {
-    select.add(new Option("Belum ada pekerjaan",""));
-    $("jobInfo").textContent="Daftar pekerjaan belum tersedia di database.";
-    $("workBtn").disabled=true;
-    return;
+  function authMode(register) {
+    isRegister=register;
+    $("registerFields").classList.toggle("hidden",!register);
+    $("loginFields").classList.toggle("hidden",register);
+    $("authTitle").textContent=register?"Bergabung dengan kota":"Masuk ke kota";
+    $("authSubtitle").textContent=register?"Buat warga baru dan mulai ceritamu.":"Lanjutkan perjalananmu di Aurelith.";
+    $("submitAuth").textContent=register?"Buat akun":"Masuk";
+    $("switchAuth").textContent=register?"Kembali masuk":"Daftar";
+    $("authMessage").textContent="";
+    $("username").required=register;
+    $("email").required=register;
+    $("displayName").required=register;
+    $("identifier").required=!register;
   }
-  select.add(new Option("Pilih pekerjaan…",""));
-  jobs.forEach(job=>select.add(new Option(job.name+" — "+formatMoney(job.salary),job.id)));
-  $("workBtn").disabled=false;
-  updateJobInfo();
-}
-function updateJobInfo(){
-  const job=jobs.find(item=>item.id===$("jobSelect").value);
-  $("jobInfo").textContent=job
-    ? "Gaji: "+formatMoney(job.salary)+". Pilih pekerjaan ini untuk memperoleh uang virtual."
-    : "Pilih pekerjaan untuk melihat informasi gaji.";
-}
-$("jobSelect").addEventListener("change",updateJobInfo);
-async function work(){
-  if(!token)return showAuth();
-  const jobId=$("jobSelect").value;
-  if(!jobId)return showNotice("workNotice","Pilih pekerjaan terlebih dahulu.","error");
-  $("workBtn").disabled=true;
-  showNotice("workNotice","Sedang memproses pekerjaan…");
-  try{
-    const result=await api("/work",{method:"POST",body:JSON.stringify({jobId})});
-    character=result.character;
-    renderCharacter();
-    showNotice("workNotice",result.message||"Pekerjaan selesai.","success");
-    addActivity("💼","Pekerjaan selesai",result.message||"Gaji berhasil diterima.");
-  }catch(error){showNotice("workNotice",error.message,"error")}
-  finally{$("workBtn").disabled=false}
-}
-async function refreshMe(showMessage=true){
-  try{
-    const result=await api("/me");
-    currentUser=result.user;
-    character=result.character;
-    renderCharacter();
-    if(showMessage)addActivity("↻","Data warga diperbarui","Profil tersinkron dengan server.");
-  }catch(error){
-    if(error.message.toLowerCase().includes("sesi")||error.message.toLowerCase().includes("login")){
-      token="";
-      localStorage.removeItem("aurelith_token");
-      showAuth();
+  $("switchAuth").addEventListener("click",()=>authMode(!isRegister));
+  $("authForm").addEventListener("submit",async event=>{
+    event.preventDefault();
+    $("submitAuth").disabled=true;
+    $("authMessage").textContent="Menghubungi server...";
+    try {
+      let data;
+      if(isRegister) {
+        data=await api("/api/register",{method:"POST",body:JSON.stringify({
+          username:$("username").value.trim(),
+          email:$("email").value.trim(),
+          password:$("password").value,
+          displayName:$("displayName").value.trim()
+        })});
+      } else {
+        data=await api("/api/login",{method:"POST",body:JSON.stringify({
+          identifier:$("identifier").value.trim(),
+          password:$("password").value
+        })});
+      }
+      if(!data.token) throw new Error("Server tidak mengembalikan token sesi. Periksa respons API.");
+      token=data.token;
+      localStorage.setItem("aurelith_token",token);
+      await enterCity(data);
+    } catch(error) {
+      $("authMessage").textContent=error.message;
+    } finally {
+      $("submitAuth").disabled=false;
     }
-    if(showMessage)showNotice("workNotice",error.message,"error");
-  }
-}
-async function logout(){
-  try{if(token)await api("/logout",{method:"POST",body:"{}"})}catch{}
-  token="";
-  currentUser=null;
-  character=null;
-  localStorage.removeItem("aurelith_token");
-  $("headerAuth").classList.remove("hidden");
-  $("logoutBtn").classList.add("hidden");
-  $("headerUser").textContent="Pengunjung";
-  showAuth();
-}
-function addActivity(icon,title,detail){
-  const row=document.createElement("div");
-  row.className="activity-row";
-  const ico=document.createElement("div");ico.className="activity-icon";ico.textContent=icon;
-  const content=document.createElement("div");
-  const strong=document.createElement("strong");strong.textContent=title;
-  const small=document.createElement("small");small.textContent=detail;
-  content.append(strong,small);row.append(ico,content);
-  $("activityList").prepend(row);
-  while($("activityList").children.length>6)$("activityList").lastElementChild.remove();
-}
-const canvas=$("cityMap");
-const ctx=canvas.getContext("2d");
-const buildings=[
-  {x:100,y:95,w:180,h:105,c:"#bf986b",name:"Balai Kota",icon:"🏛️"},
-  {x:370,y:90,w:145,h:110,c:"#8e9fb5",name:"Klinik",icon:"✚"},
-  {x:660,y:95,w:170,h:100,c:"#c4a36e",name:"Kafe",icon:"☕"},
-  {x:925,y:95,w:175,h:115,c:"#8d9cbd",name:"Kantor",icon:"🏢"},
-  {x:100,y:310,w:170,h:115,c:"#a8a0c7",name:"Perpustakaan",icon:"📚"},
-  {x:390,y:320,w:150,h:105,c:"#d0ad78",name:"Restoran",icon:"🍜"},
-  {x:670,y:315,w:170,h:115,c:"#91a8a0",name:"Toko",icon:"🛍️"},
-  {x:930,y:325,w:160,h:110,c:"#b9a17f",name:"Polisi",icon:"🚓"},
-  {x:115,y:565,w:185,h:105,c:"#c3a77f",name:"Apartemen",icon:"🏠"},
-  {x:430,y:570,w:165,h:100,c:"#8b9fc0",name:"Bank",icon:"🏦"},
-  {x:750,y:565,w:180,h:105,c:"#c2a28c",name:"Pasar",icon:"🏪"}
-];
-const trees=[ [320,245],[350,260],[300,280],[570,225],[600,240],[570,255],[850,250],[880,260],[855,280],[330,500],[365,515],[340,535],[630,485],[650,505],[680,490],[980,510],[1010,525],[975,545],[70,500],[1100,500],[550,720],[600,720],[650,720],[1050,720],[100,730] ];
-function roundedRect(x,y,w,h,r,color){
-  ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();
-}
-function drawMap(){
-  const w=canvas.width,h=canvas.height;
-  ctx.clearRect(0,0,w,h);
-  ctx.fillStyle="#294b43";ctx.fillRect(0,0,w,h);
-  // rumput bertekstur
-  for(let i=0;i<500;i++){
-    const x=(i*137)%w,y=(i*251)%h;
-    ctx.fillStyle=i%2?"#31564a":"#2d5146";
-    ctx.fillRect(x,y,3,3);
-  }
-  // jalan-jalan kota
-  ctx.fillStyle="#b9b8a7";
-  ctx.fillRect(0,255,w,42);ctx.fillRect(0,475,w,42);
-  ctx.fillRect(300,0,43,h);ctx.fillRect(610,0,43,h);ctx.fillRect(880,0,43,h);
-  ctx.fillStyle="#d8d3bc";
-  for(let x=0;x<w;x+=42){ctx.fillRect(x,275,22,2);ctx.fillRect(x,495,22,2)}
-  for(let y=0;y<h;y+=42){ctx.fillRect(320,y,2,20);ctx.fillRect(630,y,2,20);ctx.fillRect(900,y,2,20)}
-  // plaza
-  roundedRect(500,355,210,125,15,"#b6b8a6");
-  roundedRect(520,375,170,85,10,"#83a68b");
-  ctx.fillStyle="#b8d4c5";ctx.beginPath();ctx.arc(605,417,25,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#e3eee0";ctx.beginPath();ctx.arc(605,417,14,0,Math.PI*2);ctx.fill();
-  // taman
-  roundedRect(45,165,235,75,13,"#3e7052");
-  roundedRect(690,205,155,45,12,"#3e7052");
-  roundedRect(50,525,65,180,12,"#3e7052");
-  trees.forEach(([x,y],i)=>{
-    ctx.fillStyle="#183c31";ctx.beginPath();ctx.ellipse(x+3,y+7,13,9,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=i%2?"#6fa56f":"#82b77b";ctx.beginPath();ctx.arc(x,y,12,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle="#a8d19a";ctx.beginPath();ctx.arc(x-3,y-4,5,0,Math.PI*2);ctx.fill();
   });
-  buildings.forEach(b=>{
-    // bayangan dan gedung
-    roundedRect(b.x+5,b.y+9,b.w,b.h,8,"#1d392f");
-    roundedRect(b.x,b.y,b.w,b.h,8,b.c);
-    roundedRect(b.x+8,b.y+8,b.w-16,14,4,"#ffffff35");
-    ctx.fillStyle="#f0e6cb";
-    const cols=Math.max(2,Math.floor(b.w/35));
-    for(let i=0;i<cols;i++){
-      const wx=b.x+17+i*((b.w-34)/cols);
-      ctx.fillRect(wx,b.y+32,15,18);ctx.fillRect(wx,b.y+60,15,18);
+
+  function normalizeCharacter(data) {
+    const raw=data.character || data;
+    return {
+      id:raw.id || raw.character_id || "",
+      name:raw.displayName || raw.display_name || raw.name || "Warga Aurelith",
+      username:(data.user && data.user.username) || raw.username || "Warga",
+      x:clamp(Number(raw.x)||600,25,WORLD.w-25),
+      y:clamp(Number(raw.y)||400,25,WORLD.h-25),
+      money:Number(raw.money ?? raw.coins ?? 1000)||0,
+      energy:Number(raw.energy ?? 100),
+      mood:Number(raw.mood ?? 100),
+      activity:raw.currentActivity || raw.current_activity || "idle"
+    };
+  }
+  function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
+  function renderPlayer() {
+    if(!player)return;
+    $("playerName").textContent=player.name;
+    $("playerUser").textContent="@"+player.username;
+    $("money").textContent=money(player.money);
+    $("energy").textContent=Math.round(player.energy);
+    $("mood").textContent=Math.round(player.mood);
+    $("position").textContent=Math.round(player.x)+", "+Math.round(player.y);
+    $("activity").textContent="Aktivitas: "+String(player.activity).replaceAll("_"," ");
+  }
+  async function enterCity(initialData) {
+    if(initialData) player=normalizeCharacter(initialData);
+    else {
+      const data=await api("/api/me");
+      player=normalizeCharacter(data);
     }
-    ctx.fillStyle="#f5f0dc";ctx.fillRect(b.x+b.w/2-12,b.y+b.h-20,24,20);
-    ctx.textAlign="center";ctx.font="23px sans-serif";ctx.fillText(b.icon,b.x+b.w/2,b.y-9);
-    ctx.font="bold 13px sans-serif";ctx.fillStyle="#f4f1dc";ctx.fillText(b.name,b.x+b.w/2,b.y+b.h+19);
-  });
-  // NPC warga dekoratif
-  const npcs=[
-    {x:355,y:310,c:"#e9bd72"},{x:580,y:300,c:"#91c6eb"},{x:720,y:530,c:"#e8a6a6"},
-    {x:840,y:290,c:"#d4b5ef"},{x:280,y:455,c:"#f0d18b"},{x:710,y:285,c:"#9dd7ba"}
-  ];
-  npcs.forEach(n=>{
-    ctx.fillStyle="#10241e";ctx.beginPath();ctx.ellipse(n.x,n.y+7,8,5,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=n.c;ctx.beginPath();ctx.arc(n.x,n.y,7,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle="#f3d1ad";ctx.beginPath();ctx.arc(n.x,n.y-8,5,0,Math.PI*2);ctx.fill();
-  });
-  // pemain
-  const p=character?{x:Number(character.x??600),y:Number(character.y??400)}:lastPoint;
-  ctx.fillStyle="#101e19";ctx.beginPath();ctx.ellipse(p.x,p.y+13,13,7,0,0,Math.PI*2);ctx.fill();
-  if(target){
-    ctx.strokeStyle="#f4d17f";ctx.lineWidth=3;ctx.beginPath();ctx.arc(target.x,target.y,13,0,Math.PI*2);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(target.x-6,target.y);ctx.lineTo(target.x+6,target.y);ctx.moveTo(target.x,target.y-6);ctx.lineTo(target.x,target.y+6);ctx.stroke();
-  }
-  ctx.fillStyle="#f2c66c";ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#f4d9b8";ctx.beginPath();ctx.arc(p.x,p.y-10,7,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#25344a";ctx.fillRect(p.x-6,p.y-3,12,10);
-  ctx.fillStyle="#fff4d5";ctx.font="bold 12px sans-serif";ctx.textAlign="center";
-  ctx.fillText(character?.displayName||"Kamu",p.x,p.y-25);
-}
-canvas.addEventListener("click",event=>{
-  if(!token||!character)return;
-  const rect=canvas.getBoundingClientRect();
-  const x=(event.clientX-rect.left)*canvas.width/rect.width;
-  const y=(event.clientY-rect.top)*canvas.height/rect.height;
-  goTo(x,y,"Lokasi baru");
-});
-async function goTo(x,y,label){
-  if(!token||!character){showAuth();return}
-  const start={x:Number(character.x??600),y:Number(character.y??400)};
-  const end={x:Math.max(25,Math.min(1175,x)),y:Math.max(25,Math.min(775,y))};
-  target=end;
-  if(animation)cancelAnimationFrame(animation);
-  const duration=650;
-  const begin=performance.now();
-  $("mapStatus").textContent="Bergerak menuju "+label+"…";
-  function frame(now){
-    const t=Math.min(1,(now-begin)/duration);
-    const ease=t*t*(3-2*t);
-    lastPoint={x:start.x+(end.x-start.x)*ease,y:start.y+(end.y-start.y)*ease};
-    const old=character;
-    character={...old,x:lastPoint.x,y:lastPoint.y};
+    $("auth").classList.add("hidden");
+    $("game").classList.remove("hidden");
+    $("logoutBtn").classList.remove("hidden");
+    setConnection("Terhubung");
     drawMap();
-    if(t<1){animation=requestAnimationFrame(frame)}
-    else{
-      character.x=Math.round(end.x);character.y=Math.round(end.y);
-      lastPoint={x:character.x,y:character.y};
-      target=null;renderCharacter();
-      $("mapStatus").textContent="Tiba di "+label;
-      api("/move",{method:"POST",body:JSON.stringify({x:character.x,y:character.y})})
-        .then(()=>addActivity("📍","Berpindah lokasi","Kamu tiba di "+label+"."))
-        .catch(error=>showNotice("workNotice","Gerakan lokal berhasil, tetapi server gagal menyimpan posisi: "+error.message,"error"));
+    renderPlayer();
+    await loadJobs();
+    log("Kamu memasuki Distrik Pusat.");
+    notify("Selamat datang, "+player.name+"!");
+  }
+  async function loadJobs() {
+    $("jobs").textContent="Memuat pekerjaan...";
+    try {
+      const data=await api("/api/jobs");
+      jobs=Array.isArray(data.jobs)?data.jobs:[];
+      renderJobs();
+    } catch(error) {
+      $("jobs").textContent=error.message;
+      log("Daftar pekerjaan gagal dimuat.");
     }
   }
-  animation=requestAnimationFrame(frame);
-}
-async function boot(){
-  drawMap();
-  if(!token)return;
-  try{
-    const result=await api("/me");
-    currentUser=result.user;character=result.character;
-    showGame();renderCharacter();
-    await loadJobs();
-    $("headerUser").textContent="@"+(currentUser.username||"warga");
-  }catch{
-    token="";localStorage.removeItem("aurelith_token");
-    showAuth();
+  function renderJobs() {
+    $("jobs").replaceChildren();
+    if(!jobs.length) {
+      const p=document.createElement("p");
+      p.className="muted small";
+      p.textContent="Belum ada pekerjaan yang tersedia.";
+      $("jobs").append(p);
+      return;
+    }
+    jobs.forEach(job=>{
+      const row=document.createElement("div");row.className="job";
+      const info=document.createElement("div");
+      const title=document.createElement("strong");title.textContent=job.name;
+      const detail=document.createElement("small");
+      detail.textContent="Gaji: "+money(job.salary)+" uang virtual";
+      info.append(title,detail);
+      const button=document.createElement("button");button.className="secondary";button.textContent="Bekerja";
+      button.addEventListener("click",()=>work(job,button));
+      row.append(info,button);$("jobs").append(row);
+    });
   }
-}
-boot();
+  async function work(job,button) {
+    button.disabled=true;
+    try {
+      const data=await api("/api/work",{method:"POST",body:JSON.stringify({jobId:job.id})});
+      if(data.character) player=normalizeCharacter({character:data.character,user:{username:player.username}});
+      else {
+        try {player=normalizeCharacter(await api("/api/me"));}
+        catch(_) {player.money+=Number(job.salary)||0;player.activity="Bekerja: "+job.name;}
+      }
+      renderPlayer();
+      log(data.message || "Kamu bekerja sebagai "+job.name+".");
+      notify(data.message || "Pekerjaan selesai.");
+    } catch(error) {
+      notify(error.message);
+      log("Pekerjaan tidak berhasil: "+error.message);
+    } finally {button.disabled=false;}
+  }
+
+  function roundedRect(ctx,x,y,w,h,r,fill,stroke) {
+    ctx.beginPath();ctx.roundRect(x,y,w,h,r);
+    if(fill){ctx.fillStyle=fill;ctx.fill();}
+    if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
+  }
+  function seeded(n){const v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v);}
+  function makeMap() {
+    buildings=[
+      {x:70,y:70,w:160,h:100,name:"BALAI KOTA",color:"#b5a17b",icon:"🏛"},
+      {x:420,y:60,w:125,h:105,name:"KANTOR",color:"#7b9eae",icon:"▥"},
+      {x:780,y:70,w:150,h:95,name:"KLINIK",color:"#d0c6b0",icon:"✚"},
+      {x:990,y:300,w:145,h:110,name:"KAFE",color:"#c48d68",icon:"☕"},
+      {x:70,y:510,w:155,h:105,name:"RESTORAN",color:"#c17c65",icon:"♨"},
+      {x:430,y:535,w:135,h:95,name:"TOKO",color:"#b6aa7e",icon:"▣"},
+      {x:790,y:520,w:155,h:100,name:"KANTOR POLISI",color:"#8198b2",icon:"★"},
+      {x:975,y:610,w:155,h:95,name:"KONSTRUKSI",color:"#bd9a61",icon:"⚒"}
+    ];
+    ambient=[];
+    for(let i=0;i<30;i++)ambient.push({x:40+seeded(i+1)*1120,y:30+seeded(i+40)*740,color:["#d8b08a","#9db6d1","#d7d6b0","#b4c6ad"][i%4]});
+  }
+  function drawMap() {
+    const canvas=$("map"),ctx=canvas.getContext("2d");
+    ctx.clearRect(0,0,WORLD.w,WORLD.h);
+    ctx.fillStyle="#58775a";ctx.fillRect(0,0,WORLD.w,WORLD.h);
+    // Grass variation and subtle ground texture
+    for(let i=0;i<380;i++){
+      const x=seeded(i+70)*WORLD.w,y=seeded(i+700)*WORLD.h;
+      ctx.fillStyle=i%2?"#60805f":"#527252";ctx.fillRect(x,y,18,12);
+    }
+    // Parks
+    roundedRect(ctx,255,55,135,185,12,"#719469","#496b4a");
+    roundedRect(ctx,600,520,145,185,12,"#719469","#496b4a");
+    for(let i=0;i<12;i++){
+      const x=275+seeded(i+800)*95,y=75+seeded(i+900)*140;
+      ctx.fillStyle="#436844";ctx.beginPath();ctx.arc(x,y,12,0,7);ctx.fill();
+      ctx.fillStyle="#8caa70";ctx.beginPath();ctx.arc(x-3,y-3,8,0,7);ctx.fill();
+    }
+    // Road network
+    ctx.fillStyle="#b9b4a1";
+    [[0,260,1200,68],[0,440,1200,68],[350,0,68,800],[700,0,68,800],[950,0,60,800]].forEach(r=>ctx.fillRect(...r));
+    ctx.fillStyle="#d9d3bf";
+    [[0,265,1200,58],[0,445,1200,58],[355,0,58,800],[705,0,58,800],[955,0,50,800]].forEach(r=>ctx.fillRect(...r));
+    ctx.strokeStyle="#f3e8c7";ctx.lineWidth=2;ctx.setLineDash([14,12]);
+    [294,474].forEach(y=>{ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(1200,y);ctx.stroke()});
+    [384,734,980].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,800);ctx.stroke()});
+    ctx.setLineDash([]);
+    // Sidewalks and crosswalks
+    ctx.fillStyle="#eee6d1";
+    [370,720,970].forEach(x=>[270,450].forEach(y=>{for(let i=0;i<6;i++)ctx.fillRect(x-20+i*7,y,4,16)}));
+    buildings.forEach(b=>{
+      ctx.fillStyle="#354d3d";ctx.fillRect(b.x+7,b.y+10,b.w,b.h);
+      roundedRect(ctx,b.x,b.y,b.w,b.h,6,b.color,"#665e4c");
+      ctx.fillStyle="#8b9b91";ctx.fillRect(b.x+8,b.y+8,b.w-16,8);
+      ctx.fillStyle="#e8e1d0";
+      for(let x=b.x+14;x<b.x+b.w-10;x+=28){
+        ctx.fillRect(x,b.y+24,17,15);
+        ctx.fillStyle="#657f88";ctx.fillRect(x+2,b.y+26,13,11);
+        ctx.fillStyle="#e8e1d0";
+      }
+      ctx.fillStyle="#584b3c";ctx.fillRect(b.x+b.w/2-12,b.y+b.h-30,24,30);
+      ctx.fillStyle="#fff3d9";ctx.font="bold 13px system-ui";ctx.textAlign="center";
+      ctx.fillText(b.name,b.x+b.w/2,b.y+b.h+17);
+      ctx.textAlign="left";
+    });
+    // Decorative pedestrians. These are visual ambience, not server-backed citizens.
+    ambient.forEach((n,i)=>{
+      ctx.fillStyle="#27342c";ctx.beginPath();ctx.ellipse(n.x,n.y+5,6,4,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=n.color;ctx.beginPath();ctx.arc(n.x,n.y,5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#f1d2ad";ctx.beginPath();ctx.arc(n.x,n.y-6,4,0,Math.PI*2);ctx.fill();
+    });
+    // Player marker
+    if(player){
+      ctx.fillStyle="#18212b";ctx.beginPath();ctx.ellipse(player.x,player.y+8,15,8,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#e4bd70";ctx.beginPath();ctx.arc(player.x,player.y-5,12,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#263a4c";ctx.fillRect(player.x-8,player.y+2,16,17);
+      ctx.fillStyle="#fff3d9";ctx.font="bold 15px system-ui";ctx.textAlign="center";
+      ctx.fillText(player.name.slice(0,18),player.x,player.y-25);ctx.textAlign="left";
+      if(target){ctx.strokeStyle="#fff3d9";ctx.lineWidth=2;ctx.beginPath();ctx.arc(target.x,target.y,12,0,Math.PI*2);ctx.stroke();}
+    }
+  }
+  function canvasPoint(event) {
+    const rect=$("map").getBoundingClientRect();
+    return {x:(event.clientX-rect.left)*WORLD.w/rect.width,y:(event.clientY-rect.top)*WORLD.h/rect.height};
+  }
+  $("map").addEventListener("click",async event=>{
+    if(!player||moving)return;
+    const point=canvasPoint(event);
+    target={x:clamp(point.x,25,WORLD.w-25),y:clamp(point.y,25,WORLD.h-25)};
+    moving=true;
+    const start={x:player.x,y:player.y},end={...target};
+    const distance=Math.hypot(end.x-start.x,end.y-start.y);
+    const duration=clamp(distance*3,250,1800);
+    const began=performance.now();
+    function frame(now){
+      const t=clamp((now-began)/duration,0,1);
+      const eased=t*t*(3-2*t);
+      player.x=start.x+(end.x-start.x)*eased;
+      player.y=start.y+(end.y-start.y)*eased;
+      drawMap();renderPlayer();
+      if(t<1)requestAnimationFrame(frame);
+      else savePosition();
+    }
+    requestAnimationFrame(frame);
+  });
+  async function savePosition(){
+    moving=false;
+    try{
+      const data=await api("/api/move",{method:"POST",body:JSON.stringify({x:Math.round(player.x),y:Math.round(player.y)})});
+      player.x=data.x;player.y=data.y;
+      renderPlayer();drawMap();log("Berpindah ke koordinat "+Math.round(player.x)+", "+Math.round(player.y)+".");
+    }catch(error){
+      notify("Posisi belum tersimpan: "+error.message);
+      log("Server menolak penyimpanan posisi.");
+    }
+  }
+  $("logoutBtn").addEventListener("click",async()=>{
+    try{await api("/api/logout",{method:"POST"});}catch(_){}
+    token="";player=null;localStorage.removeItem("aurelith_token");
+    $("game").classList.add("hidden");$("auth").classList.remove("hidden");
+    $("logoutBtn").classList.add("hidden");$("password").value="";
+    authMode(false);setConnection("Siap masuk");
+  });
+
+  makeMap();
+  async function start(){
+    try{
+      const health=await fetch("/api/health",{cache:"no-store"});
+      if(!health.ok)throw new Error("Health check gagal");
+      setConnection("Server online");
+    }catch(_){setConnection("Server belum terverifikasi");}
+    if(token){
+      try{await enterCity();}
+      catch(error){
+        token="";localStorage.removeItem("aurelith_token");
+        $("authMessage").textContent="Sesi perlu login ulang: "+error.message;
+      }
+    }
+  }
+  authMode(false);
+  start();
+})();
 </script>
 </body>
 </html>
