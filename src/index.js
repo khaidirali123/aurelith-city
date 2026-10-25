@@ -500,7 +500,8 @@ export default {
     } catch (error) {
       console.error("Aurelith API error:", error);
       return json({
-        error: "Terjadi kesalahan server. Periksa Workers Logs."
+        error: "Terjadi kesalahan server.",
+        detail: String(error?.message || error)
       }, 500);
     }
   }
