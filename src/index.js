@@ -435,11 +435,26 @@ async function handleApi(request, env) {
     const safeX = Math.max(25, Math.min(WORLD_WIDTH - 25, x));
     const safeY = Math.max(25, Math.min(WORLD_HEIGHT - 25, y));
 
-    await db.prepare(`
-      UPDATE characters
-      SET x = ?, y = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).bind(safeX, safeY, session.character_id).run();
+    await db.batch([
+      db.prepare(`
+        UPDATE characters
+        SET x = ?, y = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(safeX, safeY, session.character_id),
+      db.prepare(`CREATE TABLE IF NOT EXISTS player_presence (
+        character_id TEXT PRIMARY KEY,
+        x REAL NOT NULL DEFAULT 600,
+        y REAL NOT NULL DEFAULT 400,
+        last_seen TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
+      )`),
+      db.prepare(`
+        INSERT INTO player_presence (character_id, x, y, last_seen)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(character_id) DO UPDATE SET
+          x = excluded.x, y = excluded.y, last_seen = CURRENT_TIMESTAMP
+      `).bind(session.character_id, safeX, safeY)
+    ]);
 
     return json({ success: true, x: safeX, y: safeY });
   }
