@@ -625,6 +625,241 @@ async function handleApi(request, env) {
     });
   }
 
+
+  // SISTEM GAMEPLAY TAMBAHAN — tabel baru dibuat secara additive.
+  // Tidak menghapus atau mengubah tabel/data akun, pekerjaan, atau dompet yang sudah ada.
+  if (path.startsWith("/api/game/")) {
+    const session = await getSession(request, db);
+    if (!session) return json({ error: "Sesi berakhir. Silakan login kembali." }, 401);
+
+    await db.batch([
+      db.prepare(`
+        CREATE TABLE IF NOT EXISTS character_game_state (
+          character_id TEXT PRIMARY KEY,
+          health INTEGER NOT NULL DEFAULT 100,
+          wanted_level INTEGER NOT NULL DEFAULT 0,
+          activity_type TEXT,
+          activity_started_at TEXT,
+          activity_ends_at TEXT,
+          activity_reward INTEGER NOT NULL DEFAULT 0,
+          last_crime_at TEXT,
+          updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
+        )
+      `),
+      db.prepare(`
+        CREATE TABLE IF NOT EXISTS character_inventory (
+          id TEXT PRIMARY KEY,
+          character_id TEXT NOT NULL,
+          item_key TEXT NOT NULL,
+          item_name TEXT NOT NULL,
+          quantity INTEGER NOT NULL DEFAULT 0,
+          updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(character_id, item_key),
+          FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
+        )
+      `),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_game_state_activity_end ON character_game_state(activity_ends_at)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_inventory_character ON character_inventory(character_id)")
+    ]);
+
+    await db.prepare(`
+      INSERT OR IGNORE INTO character_game_state (character_id)
+      VALUES (?)
+    `).bind(session.character_id).run();
+
+    const settleFinishedActivity = async () => {
+      const state = await db.prepare(`
+        SELECT activity_type, activity_started_at, activity_ends_at, activity_reward
+        FROM character_game_state WHERE character_id = ? LIMIT 1
+      `).bind(session.character_id).first();
+
+      if (!state?.activity_type || !state.activity_ends_at) return null;
+      const due = await db.prepare("SELECT datetime(?) <= datetime('now') AS ready")
+        .bind(state.activity_ends_at).first();
+      if (!due?.ready) return null;
+
+      const clear = await db.prepare(`
+        UPDATE character_game_state
+        SET activity_type = NULL, activity_started_at = NULL,
+            activity_ends_at = NULL, activity_reward = 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE character_id = ? AND activity_type = ? AND activity_ends_at = ?
+      `).bind(session.character_id, state.activity_type, state.activity_ends_at).run();
+
+      if (!clear.meta?.changes) return null;
+      const minutes = Math.max(1, Math.round((Date.parse(state.activity_ends_at + "Z") - Date.parse(state.activity_started_at + "Z")) / 60000) || 60);
+      let reward = Math.max(0, Number(state.activity_reward) || 0);
+      if (state.activity_type === "rest") {
+        await db.prepare(`
+          UPDATE characters SET energy = MIN(100, energy + ?),
+            mood = MIN(100, mood + 8), current_activity = 'Santai',
+            updated_at = CURRENT_TIMESTAMP WHERE id = ?
+        `).bind(Math.min(60, Math.ceil(minutes / 10)), session.character_id).run();
+        return { type: "rest", reward: 0, message: "Waktu istirahat selesai. Energi dan suasana hati pulih." };
+      }
+
+      if (state.activity_type === "side_job") {
+        const transactionId = crypto.randomUUID();
+        await db.batch([
+          db.prepare(`UPDATE characters SET money = money + ?, energy = MAX(0, energy - 10),
+            current_activity = 'Pekerjaan sampingan selesai', updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?`).bind(reward, session.character_id),
+          db.prepare(`INSERT INTO wallet_transactions
+            (id, character_id, transaction_type, amount, description)
+            VALUES (?, ?, 'income', ?, 'Pendapatan pekerjaan sampingan offline')`)
+            .bind(transactionId, session.character_id, reward),
+          db.prepare(`INSERT INTO activities
+            (id, character_id, activity_type, details, status)
+            VALUES (?, ?, 'side_job', 'Pekerjaan sampingan offline selesai', 'completed')`)
+            .bind(crypto.randomUUID(), session.character_id)
+        ]);
+        return { type: "side_job", reward, message: "Pekerjaan sampingan selesai. Pendapatan sudah masuk ke dompet." };
+      }
+      return null;
+    };
+
+    const settleResult = await settleFinishedActivity();
+
+    if (path === "/api/game/state" && method === "GET") {
+      const [state, characterRow, inventory, recentActivities] = await Promise.all([
+        db.prepare("SELECT * FROM character_game_state WHERE character_id = ?").bind(session.character_id).first(),
+        db.prepare("SELECT money, energy, mood, current_activity FROM characters WHERE id = ?").bind(session.character_id).first(),
+        db.prepare("SELECT item_key, item_name, quantity FROM character_inventory WHERE character_id = ? AND quantity > 0 ORDER BY item_name").bind(session.character_id).all(),
+        db.prepare("SELECT activity_type, details, status, started_at FROM activities WHERE character_id = ? ORDER BY started_at DESC LIMIT 12").bind(session.character_id).all()
+      ]);
+      return json({
+        success: true,
+        state: {
+          health: state?.health ?? 100,
+          wantedLevel: state?.wanted_level ?? 0,
+          activityType: state?.activity_type ?? null,
+          activityStartedAt: state?.activity_started_at ?? null,
+          activityEndsAt: state?.activity_ends_at ?? null,
+          activityReward: state?.activity_reward ?? 0,
+          lastCrimeAt: state?.last_crime_at ?? null
+        },
+        character: characterRow,
+        inventory: inventory.results || [],
+        activities: recentActivities.results || [],
+        settledActivity: settleResult
+      });
+    }
+
+    if (path === "/api/game/activity/start" && method === "POST") {
+      const body = await readBody(request);
+      const activityType = String(body?.activityType || "");
+      const hours = Number(body?.hours || 1);
+      if (!["rest", "side_job"].includes(activityType)) {
+        return json({ error: "Pilih aktivitas istirahat atau pekerjaan sampingan." }, 400);
+      }
+      if (!Number.isInteger(hours) || hours < 1 || hours > 8) {
+        return json({ error: "Durasi harus 1–8 jam." }, 400);
+      }
+      const current = await db.prepare("SELECT activity_type, activity_ends_at FROM character_game_state WHERE character_id = ?")
+        .bind(session.character_id).first();
+      if (current?.activity_type) {
+        return json({ error: "Karakter sedang menjalankan aktivitas. Tunggu sampai selesai atau klaim hasilnya." }, 409);
+      }
+      if (activityType === "side_job" && Number(session.energy) < 10) {
+        return json({ error: "Energi terlalu rendah untuk pekerjaan sampingan." }, 400);
+      }
+      const reward = activityType === "side_job" ? hours * 100 : 0;
+      await db.prepare(`
+        UPDATE character_game_state
+        SET activity_type = ?, activity_started_at = CURRENT_TIMESTAMP,
+            activity_ends_at = datetime('now', '+' || ? || ' hours'),
+            activity_reward = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE character_id = ? AND activity_type IS NULL
+      `).bind(activityType, hours, reward, session.character_id).run();
+      await db.prepare("UPDATE characters SET current_activity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+        .bind(activityType === "rest" ? "Istirahat offline" : "Pekerjaan sampingan offline", session.character_id).run();
+      await db.prepare(`
+        INSERT INTO activities (id, character_id, activity_type, details, status)
+        VALUES (?, ?, ?, ?, 'in_progress')
+      `).bind(crypto.randomUUID(), session.character_id, activityType,
+        (activityType === "rest" ? "Istirahat selama " : "Pekerjaan sampingan selama ") + hours + " jam").run();
+      return json({
+        success: true,
+        message: activityType === "rest"
+          ? "Istirahat dimulai. Kembali setelah durasinya selesai untuk memulihkan energi."
+          : "Pekerjaan sampingan dimulai. Pendapatan akan diberikan setelah durasinya selesai.",
+        activityType, hours, reward, endsAt: new Date(Date.now() + hours * 3600000).toISOString()
+      }, 201);
+    }
+
+    if (path === "/api/game/crime" && method === "POST") {
+      const body = await readBody(request);
+      const crimeType = String(body?.crimeType || "");
+      const crimes = {
+        pickpocket: { label: "Mencopet", chance: 0.58, min: 80, max: 220, fine: 100 },
+        shoplift: { label: "Mencuri barang toko", chance: 0.48, min: 140, max: 360, fine: 180 },
+        heist: { label: "Perampokan berisiko", chance: 0.30, min: 350, max: 800, fine: 400 }
+      };
+      const crime = crimes[crimeType];
+      if (!crime) return json({ error: "Aksi kriminal tidak dikenal." }, 400);
+      const state = await db.prepare("SELECT * FROM character_game_state WHERE character_id = ?").bind(session.character_id).first();
+      if (Number(state?.wanted_level || 0) >= 5) return json({ error: "Tingkat buronan maksimal. Tunggu sampai buronan berkurang sebelum mencoba lagi." }, 429);
+      const recent = await db.prepare(`
+        SELECT id FROM activities WHERE character_id = ? AND activity_type = 'crime'
+          AND started_at > datetime('now', '-10 minutes') LIMIT 1
+      `).bind(session.character_id).first();
+      if (recent) return json({ error: "Kamu perlu menunggu 10 menit sebelum mencoba aksi kriminal lagi." }, 429);
+      if (Number(session.energy) < 15) return json({ error: "Energi minimal 15 diperlukan." }, 400);
+
+      const success = Math.random() < crime.chance;
+      const amount = success
+        ? Math.floor(crime.min + Math.random() * (crime.max - crime.min + 1))
+        : Math.min(Number(session.money) || 0, crime.fine);
+      const wanted = Math.min(5, Math.max(0, Number(state?.wanted_level || 0) + (success ? 1 : 2)));
+      const details = success
+        ? crime.label + " berhasil; memperoleh " + amount + " uang virtual"
+        : crime.label + " gagal; denda " + amount + " uang virtual";
+      const statements = [
+        db.prepare(`UPDATE characters SET money = MAX(0, money + ?), energy = MAX(0, energy - 15),
+          mood = MAX(0, mood - 5), current_activity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+          .bind(success ? amount : -amount, success ? "Melakukan aksi kriminal" : "Tertangkap saat beraksi", session.character_id),
+        db.prepare(`UPDATE character_game_state SET wanted_level = ?, last_crime_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP WHERE character_id = ?`).bind(wanted, session.character_id),
+        db.prepare(`INSERT INTO activities (id, character_id, activity_type, details, status)
+          VALUES (?, ?, 'crime', ?, ?)`).bind(crypto.randomUUID(), session.character_id, details, success ? "completed" : "failed")
+      ];
+      if (amount > 0) {
+        statements.push(db.prepare(`INSERT INTO wallet_transactions
+          (id, character_id, transaction_type, amount, description)
+          VALUES (?, ?, ?, ?, ?)`).bind(crypto.randomUUID(), session.character_id,
+          success ? "income" : "expense", amount, success ? "Hasil kriminal: " + crime.label : "Denda kriminal: " + crime.label));
+      }
+      await db.batch(statements);
+      const updated = await db.prepare("SELECT money, energy, mood, current_activity FROM characters WHERE id = ?").bind(session.character_id).first();
+      return json({
+        success: true, outcome: success ? "success" : "caught", amount, wantedLevel: wanted,
+        message: success
+          ? "Berhasil: " + details + ". Tingkat buronan meningkat."
+          : "Gagal: " + details + ". Tingkat buronan meningkat lebih besar.",
+        character: { ...updated }
+      });
+    }
+
+    if (path === "/api/game/lay-low" && method === "POST") {
+      const state = await db.prepare("SELECT wanted_level FROM character_game_state WHERE character_id = ?").bind(session.character_id).first();
+      if (!Number(state?.wanted_level || 0)) return json({ success: true, message: "Kamu tidak sedang diburu." });
+      const recent = await db.prepare(`
+        SELECT id FROM activities WHERE character_id = ? AND activity_type = 'lay_low'
+          AND started_at > datetime('now', '-30 minutes') LIMIT 1
+      `).bind(session.character_id).first();
+      if (recent) return json({ error: "Kamu sudah bersembunyi. Coba lagi setelah 30 menit." }, 429);
+      await db.batch([
+        db.prepare("UPDATE character_game_state SET wanted_level = MAX(0, wanted_level - 1), updated_at = CURRENT_TIMESTAMP WHERE character_id = ?").bind(session.character_id),
+        db.prepare("UPDATE characters SET current_activity = 'Bersembunyi', energy = MAX(0, energy - 5), updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(session.character_id),
+        db.prepare("INSERT INTO activities (id, character_id, activity_type, details, status) VALUES (?, ?, 'lay_low', 'Bersembunyi untuk menurunkan tingkat buronan', 'completed')").bind(crypto.randomUUID(), session.character_id)
+      ]);
+      return json({ success: true, message: "Kamu bersembunyi dan menurunkan tingkat buronan satu tingkat." });
+    }
+
+    return json({ error: "Endpoint gameplay tidak ditemukan." }, 404);
+  }
+
   return json({ error: "Endpoint API tidak ditemukan." }, 404);
 }
 
