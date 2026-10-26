@@ -1151,6 +1151,84 @@ async function handleApi(request, env) {
       return json({ success: true, message: accept ? "Permintaan pertemanan diterima." : "Permintaan pertemanan ditolak." });
     }
 
+
+    if (path === "/api/social/transfer" && method === "POST") {
+      const body = await readBody(request);
+      const targetId = String(body?.targetCharacterId || "");
+      const amount = Number(body?.amount);
+      const description = String(body?.description || "Transfer antarpemain").trim().slice(0, 80) || "Transfer antarpemain";
+      if (!targetId || targetId === session.character_id) return json({ error: "Pilih pemain lain sebagai penerima." }, 400);
+      if (!Number.isSafeInteger(amount) || amount < 1 || amount > 100000) return json({ error: "Nominal harus berupa bilangan bulat antara 1 dan 100.000." }, 400);
+      const recipient = await db.prepare("SELECT id, display_name FROM characters WHERE id = ?").bind(targetId).first();
+      if (!recipient) return json({ error: "Pemain penerima tidak ditemukan." }, 404);
+      const transferId = crypto.randomUUID();
+      const senderLedgerId = crypto.randomUUID();
+      const receiverLedgerId = crypto.randomUUID();
+      const result = await db.batch([
+        db.prepare("UPDATE characters SET money = money - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND money >= ?")
+          .bind(amount, session.character_id, amount),
+        db.prepare(`INSERT INTO wallet_transactions (id, character_id, transaction_type, amount, description)
+          SELECT ?, ?, 'expense', ?, ? WHERE changes() > 0`)
+          .bind(senderLedgerId, session.character_id, amount, "Transfer ke " + recipient.display_name + ": " + description),
+        db.prepare(`UPDATE characters SET money = money + ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ? AND EXISTS (SELECT 1 FROM wallet_transactions WHERE id = ?)`)
+          .bind(amount, targetId, senderLedgerId),
+        db.prepare(`INSERT INTO wallet_transactions (id, character_id, transaction_type, amount, description)
+          SELECT ?, ?, 'income', ?, ? WHERE EXISTS (SELECT 1 FROM wallet_transactions WHERE id = ?)`)
+          .bind(receiverLedgerId, targetId, amount, "Transfer dari " + session.display_name + ": " + description, senderLedgerId)
+      ]);
+      if (!result[0]?.meta?.changes) return json({ error: "Saldo tidak cukup untuk transfer." }, 400);
+      return json({ success: true, message: "Transfer berhasil ke " + recipient.display_name + ".", amount, recipient: recipient.display_name });
+    }
+
+    if (path === "/api/social/trade/item" && method === "POST") {
+      const body = await readBody(request);
+      const targetId = String(body?.targetCharacterId || "");
+      const itemKey = String(body?.itemKey || "");
+      const rawQuantity = Number(body?.quantity);
+      if (!targetId || targetId === session.character_id) return json({ error: "Pilih pemain lain sebagai penerima." }, 400);
+      if (!Number.isSafeInteger(rawQuantity) || rawQuantity < 1 || rawQuantity > 20) return json({ error: "Jumlah barang harus antara 1 dan 20." }, 400);
+      if (!/^[a-z0-9_-]{1,60}$/.test(itemKey)) return json({ error: "Jenis barang tidak valid." }, 400);
+      const recipient = await db.prepare("SELECT id, display_name FROM characters WHERE id = ?").bind(targetId).first();
+      if (!recipient) return json({ error: "Pemain penerima tidak ditemukan." }, 404);
+      await db.batch([
+        db.prepare(`CREATE TABLE IF NOT EXISTS character_inventory (
+          id TEXT PRIMARY KEY, character_id TEXT NOT NULL, item_key TEXT NOT NULL,
+          item_name TEXT NOT NULL, quantity INTEGER NOT NULL DEFAULT 0,
+          updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(character_id, item_key),
+          FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
+        )`),
+        db.prepare(`CREATE TABLE IF NOT EXISTS player_item_transfers (
+          id TEXT PRIMARY KEY, sender_character_id TEXT NOT NULL, recipient_character_id TEXT NOT NULL,
+          item_key TEXT NOT NULL, item_name TEXT NOT NULL, quantity INTEGER NOT NULL,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY(sender_character_id) REFERENCES characters(id) ON DELETE CASCADE,
+          FOREIGN KEY(recipient_character_id) REFERENCES characters(id) ON DELETE CASCADE
+        )`)
+      ]);
+      const owned = await db.prepare(`SELECT item_name, quantity FROM character_inventory
+        WHERE character_id = ? AND item_key = ? AND quantity >= ?`)
+        .bind(session.character_id, itemKey, rawQuantity).first();
+      if (!owned) return json({ error: "Barang atau jumlahnya tidak tersedia di inventarismu." }, 400);
+      const transferId = crypto.randomUUID();
+      const result = await db.batch([
+        db.prepare(`UPDATE character_inventory SET quantity = quantity - ?, updated_at = CURRENT_TIMESTAMP
+          WHERE character_id = ? AND item_key = ? AND quantity >= ?`)
+          .bind(rawQuantity, session.character_id, itemKey, rawQuantity),
+        db.prepare(`INSERT INTO player_item_transfers (id, sender_character_id, recipient_character_id, item_key, item_name, quantity)
+          SELECT ?, ?, ?, ?, ?, ? WHERE changes() > 0`)
+          .bind(transferId, session.character_id, targetId, itemKey, owned.item_name, rawQuantity),
+        db.prepare(`INSERT INTO character_inventory (id, character_id, item_key, item_name, quantity)
+          SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM player_item_transfers WHERE id = ?)
+          ON CONFLICT(character_id, item_key) DO UPDATE SET
+          quantity = character_inventory.quantity + excluded.quantity, updated_at = CURRENT_TIMESTAMP`)
+          .bind(crypto.randomUUID(), targetId, itemKey, owned.item_name, rawQuantity, transferId)
+      ]);
+      if (!result[0]?.meta?.changes) return json({ error: "Barang sudah berubah atau jumlahnya tidak cukup." }, 409);
+      return json({ success: true, message: rawQuantity + " × " + owned.item_name + " berhasil dikirim ke " + recipient.display_name + "." });
+    }
+
     return json({ error: "Endpoint sosial tidak ditemukan." }, 404);
   }
 
