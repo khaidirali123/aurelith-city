@@ -690,6 +690,12 @@ async function handleApi(request, env) {
       if (!clear.meta?.changes) return null;
       const minutes = Math.max(1, Math.round((Date.parse(state.activity_ends_at + "Z") - Date.parse(state.activity_started_at + "Z")) / 60000) || 60);
       let reward = Math.max(0, Number(state.activity_reward) || 0);
+      await db.prepare(`
+        UPDATE activities
+        SET status = 'completed',
+            details = details || ' · selesai'
+        WHERE character_id = ? AND activity_type = ? AND status = 'in_progress'
+      `).bind(session.character_id, state.activity_type).run();
       if (state.activity_type === "rest") {
         await db.prepare(`
           UPDATE characters SET energy = MIN(100, energy + ?),
