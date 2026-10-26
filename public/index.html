@@ -686,6 +686,12 @@ footer {
             <p class="muted">Ruang inventaris sudah disiapkan untuk item yang bisa dikumpulkan di pengembangan berikutnya.</p>
             <div id="inventoryList" class="list"><div class="empty">Memuat inventaris...</div></div>
           </div>
+          <div class="panel">
+            <h2>🛒 Toko perlengkapan</h2>
+            <p class="muted">Beli barang menggunakan saldo karakter. Pembelian tercatat di dompet dan barang masuk inventaris.</p>
+            <div id="shopList" class="job-list"><div class="empty">Memuat katalog toko...</div></div>
+            <div id="shopMessage" class="message" role="status"></div>
+          </div>
         </div>
         <div class="stack">
           <div class="panel">
@@ -1144,12 +1150,20 @@ async function loadGameState() {
       row.className = "transaction";
       const label = document.createElement("strong");
       label.textContent = item.item_name;
+      const controls = document.createElement("div");
+      controls.className = "row-actions";
       const qty = document.createElement("span");
       qty.className = "activity-chip";
       qty.textContent = "× " + item.quantity;
-      row.append(label, qty); inv.append(row);
+      const use = document.createElement("button");
+      use.className = "secondary";
+      use.textContent = "Gunakan";
+      use.addEventListener("click", () => useInventoryItem(item.item_key));
+      controls.append(qty, use);
+      row.append(label, controls); inv.append(row);
     }
   }
+  await loadShop();
   const log = $("gameActivityLog");
   log.replaceChildren();
   if (!data.activities?.length) {
@@ -1170,6 +1184,68 @@ async function loadGameState() {
     showGameMessage(data.settledActivity.message, true);
     await loadWallet();
     addEvent(data.settledActivity.message);
+  }
+}
+
+async function loadShop() {
+  const data = await api("/api/game/shop");
+  const list = $("shopList");
+  list.replaceChildren();
+  for (const item of data.items || []) {
+    const card = document.createElement("article");
+    card.className = "job";
+    const head = document.createElement("div");
+    head.className = "job-head";
+    const title = document.createElement("strong");
+    title.textContent = item.name;
+    const price = document.createElement("span");
+    price.className = "salary";
+    price.textContent = money(item.price);
+    head.append(title, price);
+    const detail = document.createElement("p");
+    detail.className = "muted";
+    detail.textContent = item.description;
+    const buy = document.createElement("button");
+    buy.textContent = "Beli barang";
+    buy.addEventListener("click", () => buyShopItem(item.key, buy));
+    card.append(head, detail, buy);
+    list.append(card);
+  }
+}
+
+async function buyShopItem(itemKey, button) {
+  if (button) button.disabled = true;
+  $("shopMessage").textContent = "";
+  try {
+    const result = await api("/api/game/shop", {method:"POST", body:JSON.stringify({itemKey})});
+    $("shopMessage").style.color = "var(--green)";
+    $("shopMessage").textContent = result.message;
+    addEvent(result.message);
+    await Promise.all([loadGameState(), loadWallet()]);
+  } catch (error) {
+    $("shopMessage").style.color = "var(--red)";
+    $("shopMessage").textContent = error.message;
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function useInventoryItem(itemKey) {
+  showGameMessage("");
+  try {
+    const result = await api("/api/game/use-item", {method:"POST", body:JSON.stringify({itemKey})});
+    if (result.character && character) {
+      character.money = result.character.money;
+      character.energy = result.character.energy;
+      character.mood = result.character.mood;
+      character.currentActivity = result.character.current_activity;
+      updateCharacterUI();
+    }
+    showGameMessage(result.message, true);
+    addEvent(result.message);
+    await loadGameState();
+  } catch (error) {
+    showGameMessage(error.message, false);
   }
 }
 
