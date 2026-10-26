@@ -488,6 +488,8 @@ footer {
 .d7{bottom:8%;left:42%;background:linear-gradient(#9a5e5e,#663c42);border-color:#e5b3b3}
 .d8{top:43%;right:6%;background:linear-gradient(#6e8960,#3f5e3b);border-color:#c4ddb6}
 .map-character{position:absolute;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#e8f8ff;color:#102331;border:3px solid #64b5df;box-shadow:0 0 0 5px #64b5df38,0 3px 10px #0008;font-size:17px;pointer-events:none;transition:left .35s,top .35s}
+.map-player{position:absolute;z-index:7;transform:translate(-50%,-50%);width:27px;height:27px;padding:0;border-radius:50%;display:grid;place-items:center;background:#f4d28b;border:2px solid #fff1bd;color:#192630;font-size:14px;box-shadow:0 2px 8px #0009;transition:left .35s,top .35s}
+.map-player:after{content:"";position:absolute;top:25px;left:50%;transform:translateX(-50%);width:max-content;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;color:#fff;background:#111d;padding:2px 4px;border-radius:3px}
 .map-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:11px;color:#b5c8d1;font-size:11px}
 .map-legend span{display:inline-flex;align-items:center;gap:6px}.legend-dot{width:8px;height:8px;border-radius:50%;background:#64b5df;display:inline-block}
 .job-tools{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:10px;margin:15px 0}
@@ -602,9 +604,10 @@ footer {
               <button class="district d7" onclick="visit('Distrik Hiburan',600,690)"><b>🎭</b><small>HIBURAN</small></button>
               <button class="district d8" onclick="visit('Klinik Kota',1000,410)"><b>🏥</b><small>KLINIK</small></button>
               <div id="mapCharacter" class="map-character" aria-label="Posisi karakter kamu">🧑</div>
+              <div id="mapPlayersLayer" aria-label="Pemain lain di peta"></div>
               <div id="mapLocation" class="map-label">📍 Alun-Alun Aurelith</div>
             </div>
-            <div class="map-legend"><span><i class="legend-dot"></i> Posisi karaktermu</span><span>🧭 Klik distrik untuk berpindah</span></div>
+            <div class="map-legend"><span><i class="legend-dot"></i> Posisi karaktermu</span><span>🟡 Pemain online</span><span>🧭 Klik distrik untuk berpindah</span></div>
             <p class="muted">Posisi karakter disimpan ke server saat kamu memilih distrik.</p>
           </div>
           <div class="panel">
@@ -1382,7 +1385,7 @@ $("jobSort").addEventListener("change", event => {
 
 async function visit(place, x, y) {
   try {
-    await api("/api/move", {
+    const moved = await api("/api/move", {
       method:"POST",
       body:JSON.stringify({x,y})
     });
@@ -1392,6 +1395,7 @@ async function visit(place, x, y) {
       character.y = y;
     }
     updateMapCharacter();
+    refreshMapPlayers();
     $("mapLocation").textContent = "📍 Lokasi: " + place;
     addEvent("Kamu berpindah ke " + place + ".");
     $("activityChip").textContent = "● Menjelajah: " + place;
@@ -1418,6 +1422,7 @@ function showTab(tabId, button) {
   if (tabId === "settingsTab") loadSettings().catch(e => addEvent(e.message));
   if (tabId === "gameTab") loadGameState().catch(e => showGameMessage(e.message, false));
   if (tabId === "socialTab") refreshSocial().catch(e => setSocialStatus(e.message, false));
+  if (tabId === "homeTab") refreshMapPlayers();
 }
 
 async function refreshAll() {
@@ -1467,6 +1472,80 @@ function clearWhisper() {
   document.querySelectorAll("[data-channel]").forEach(el => el.classList.toggle("active", el.dataset.channel === "global"));
   $("whisperTarget").classList.add("hidden");
   loadChat().catch(e => setSocialStatus(e.message, false));
+}
+
+async function transferMoneyTo(playerId, playerName) {
+  const raw = prompt("Nominal uang yang dikirim ke " + playerName + " (1–100.000):");
+  if (raw === null) return;
+  const amount = Number(raw.trim());
+  if (!Number.isSafeInteger(amount) || amount < 1 || amount > 100000) {
+    setSocialStatus("Nominal harus bilangan bulat 1–100.000.", false);
+    return;
+  }
+  const description = (prompt("Catatan transfer (opsional):", "Hadiah dari warga Aurelith") || "").slice(0,80);
+  try {
+    const result = await api("/api/social/transfer", {method:"POST",body:JSON.stringify({targetCharacterId:playerId,amount,description})});
+    setSocialStatus(result.message, true);
+    await loadWallet();
+    await refreshSocial();
+  } catch(error) {
+    setSocialStatus(error.message, false);
+  }
+}
+
+async function tradeItemTo(playerId, playerName) {
+  const choice = prompt("Barang untuk " + playerName + ":\nmeal = Paket Makan\nenergy_drink = Minuman Energi\nfirst_aid = Kotak P3K\n\nMasukkan kode barang:");
+  if (choice === null) return;
+  const itemKey = choice.trim().toLowerCase();
+  if (!["meal","energy_drink","first_aid"].includes(itemKey)) {
+    setSocialStatus("Kode barang tidak dikenal. Gunakan meal, energy_drink, atau first_aid.", false);
+    return;
+  }
+  const rawQuantity = prompt("Berapa barang yang dikirim? (1–20)", "1");
+  if (rawQuantity === null) return;
+  const quantity = Number(rawQuantity.trim());
+  if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 20) {
+    setSocialStatus("Jumlah barang harus bilangan bulat 1–20.", false);
+    return;
+  }
+  try {
+    const result = await api("/api/social/trade/item", {method:"POST",body:JSON.stringify({targetCharacterId:playerId,itemKey,quantity})});
+    setSocialStatus(result.message, true);
+    await loadGameState();
+    await refreshSocial();
+  } catch(error) {
+    setSocialStatus(error.message, false);
+  }
+}
+
+async function refreshMapPlayers() {
+  if (!token) return;
+  try {
+    await api("/api/social/presence", {method:"POST",body:"{}"});
+    const data = await api("/api/social/players");
+    const layer = $("mapPlayersLayer");
+    if (!layer) return;
+    layer.replaceChildren();
+    for (const player of data.players || []) {
+      if (Number(player.online) !== 1) continue;
+      const x = Math.max(25,Math.min(1175,Number(player.x)||600));
+      const y = Math.max(25,Math.min(775,Number(player.y)||400));
+      const marker = document.createElement("button");
+      marker.className = "map-player";
+      marker.style.left = (x / 1200 * 100) + "%";
+      marker.style.top = (y / 800 * 100) + "%";
+      marker.textContent = player.outfit === "formal" ? "👔" : player.outfit === "worker" ? "🧑‍🔧" : player.outfit === "sport" ? "🏃" : "🧑";
+      marker.title = (player.displayName || "Warga") + " · klik untuk chat pribadi";
+      marker.setAttribute("aria-label", marker.title);
+      marker.addEventListener("click", event => {
+        event.stopPropagation();
+        openWhisper(player.characterId,player.displayName || "Warga").catch(error => setSocialStatus(error.message,false));
+      });
+      layer.append(marker);
+    }
+  } catch (error) {
+    // Map presence is optional; do not interrupt movement or gameplay if social service is unavailable.
+  }
 }
 
 async function openWhisper(playerId, playerName) {
@@ -1534,6 +1613,14 @@ function renderPlayers(players) {
     whisper.className = "secondary";
     whisper.textContent = "💬 Chat";
     whisper.addEventListener("click", () => openWhisper(player.characterId, player.displayName || "Warga"));
+    const transfer = document.createElement("button");
+    transfer.className = "secondary";
+    transfer.textContent = "💸 Uang";
+    transfer.addEventListener("click", () => transferMoneyTo(player.characterId, player.displayName || "Warga"));
+    const itemTrade = document.createElement("button");
+    itemTrade.className = "secondary";
+    itemTrade.textContent = "🎒 Barang";
+    itemTrade.addEventListener("click", () => tradeItemTo(player.characterId, player.displayName || "Warga"));
     const friend = document.createElement("button");
     friend.className = "secondary";
     friend.textContent = Number(player.isFriend) === 1 ? "✓ Teman" : player.friendRequest === "incoming" ? "↩ Terima" : player.friendRequest === "outgoing" ? "Terkirim" : "+ Teman";
@@ -1552,7 +1639,7 @@ function renderPlayers(players) {
         $("friendsMessage").textContent = error.message;
       }
     });
-    actions.append(whisper, friend);
+    actions.append(whisper, friend, transfer, itemTrade);
     row.append(avatar, info, actions);
     list.append(row);
   }
@@ -1686,6 +1773,7 @@ initialize();
 setInterval(() => {
   if (!token || socialPollBusy) return;
   api("/api/social/presence", {method:"POST",body:"{}"}).catch(() => {});
+  refreshMapPlayers();
   const socialPanel = $("socialTab");
   if (socialPanel && socialPanel.classList.contains("active")) {
     refreshSocial().catch(error => setSocialStatus(error.message, false));
