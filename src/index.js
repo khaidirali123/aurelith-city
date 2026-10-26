@@ -847,6 +847,91 @@ async function handleApi(request, env) {
       });
     }
 
+
+    if (path === "/api/game/shop" && method === "GET") {
+      return json({
+        success: true,
+        items: [
+          { key: "meal", name: "Paket Makan", price: 60, description: "Memulihkan 15 energi dan 5 suasana hati.", effect: "energy+15,mood+5" },
+          { key: "energy_drink", name: "Minuman Energi", price: 80, description: "Memulihkan hingga 25 energi.", effect: "energy+25" },
+          { key: "first_aid", name: "Kotak P3K", price: 150, description: "Memulihkan hingga 30 kesehatan.", effect: "health+30" }
+        ]
+      });
+    }
+
+    if (path === "/api/game/shop" && method === "POST") {
+      const body = await readBody(request);
+      const catalog = {
+        meal: { name: "Paket Makan", price: 60 },
+        energy_drink: { name: "Minuman Energi", price: 80 },
+        first_aid: { name: "Kotak P3K", price: 150 }
+      };
+      const itemKey = String(body?.itemKey || "");
+      const item = catalog[itemKey];
+      if (!item) return json({ error: "Barang tidak tersedia di toko." }, 400);
+      const buyer = await db.prepare("SELECT money FROM characters WHERE id = ?").bind(session.character_id).first();
+      if (!buyer || Number(buyer.money) < item.price) {
+        return json({ error: "Saldo tidak cukup untuk membeli barang ini." }, 400);
+      }
+      const inventoryId = crypto.randomUUID();
+      const transactionId = crypto.randomUUID();
+      const purchase = await db.batch([
+        db.prepare("UPDATE characters SET money = money - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND money >= ?")
+          .bind(item.price, session.character_id, item.price),
+        db.prepare(`INSERT INTO character_inventory (id, character_id, item_key, item_name, quantity)
+          VALUES (?, ?, ?, ?, 1)
+          ON CONFLICT(character_id, item_key) DO UPDATE SET
+          quantity = character_inventory.quantity + 1, updated_at = CURRENT_TIMESTAMP`)
+          .bind(inventoryId, session.character_id, itemKey, item.name),
+        db.prepare(`INSERT INTO wallet_transactions
+          (id, character_id, transaction_type, amount, description)
+          VALUES (?, ?, 'expense', ?, ?)`)
+          .bind(transactionId, session.character_id, item.price, "Pembelian: " + item.name),
+        db.prepare(`INSERT INTO activities (id, character_id, activity_type, details, status)
+          VALUES (?, ?, 'purchase', ?, 'completed')`)
+          .bind(crypto.randomUUID(), session.character_id, "Membeli " + item.name)
+      ]);
+      const balance = await db.prepare("SELECT money FROM characters WHERE id = ?").bind(session.character_id).first();
+      return json({ success: true, message: item.name + " berhasil dibeli.", item: { key: itemKey, name: item.name }, balance: balance?.money ?? 0 }, 201);
+    }
+
+    if (path === "/api/game/use-item" && method === "POST") {
+      const body = await readBody(request);
+      const itemKey = String(body?.itemKey || "");
+      const inventoryItem = await db.prepare(`
+        SELECT id, quantity, item_name FROM character_inventory
+        WHERE character_id = ? AND item_key = ? AND quantity > 0 LIMIT 1
+      `).bind(session.character_id, itemKey).first();
+      if (!inventoryItem) return json({ error: "Barang itu tidak ada di inventarismu." }, 404);
+
+      await db.prepare("INSERT OR IGNORE INTO character_game_state (character_id) VALUES (?)")
+        .bind(session.character_id).run();
+      if (itemKey === "meal") {
+        await db.batch([
+          db.prepare("UPDATE characters SET energy = MIN(100, energy + 15), mood = MIN(100, mood + 5), updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(session.character_id),
+          db.prepare("UPDATE character_inventory SET quantity = quantity - 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND quantity > 0").bind(inventoryItem.id)
+        ]);
+      } else if (itemKey === "energy_drink") {
+        await db.batch([
+          db.prepare("UPDATE characters SET energy = MIN(100, energy + 25), updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(session.character_id),
+          db.prepare("UPDATE character_inventory SET quantity = quantity - 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND quantity > 0").bind(inventoryItem.id)
+        ]);
+      } else if (itemKey === "first_aid") {
+        await db.batch([
+          db.prepare("UPDATE character_game_state SET health = MIN(100, health + 30), updated_at = CURRENT_TIMESTAMP WHERE character_id = ?").bind(session.character_id),
+          db.prepare("UPDATE character_inventory SET quantity = quantity - 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND quantity > 0").bind(inventoryItem.id)
+        ]);
+      } else {
+        return json({ error: "Barang ini belum bisa digunakan." }, 400);
+      }
+
+      await db.prepare(`INSERT INTO activities (id, character_id, activity_type, details, status)
+        VALUES (?, ?, 'item_use', ?, 'completed')`).bind(crypto.randomUUID(), session.character_id, "Menggunakan " + inventoryItem.item_name).run();
+      const updated = await db.prepare("SELECT money, energy, mood, current_activity FROM characters WHERE id = ?").bind(session.character_id).first();
+      const state = await db.prepare("SELECT health FROM character_game_state WHERE character_id = ?").bind(session.character_id).first();
+      return json({ success: true, message: inventoryItem.item_name + " digunakan.", character: updated, health: state?.health ?? 100 });
+    }
+
     if (path === "/api/game/lay-low" && method === "POST") {
       const state = await db.prepare("SELECT wanted_level FROM character_game_state WHERE character_id = ?").bind(session.character_id).first();
       if (!Number(state?.wanted_level || 0)) return json({ success: true, message: "Kamu tidak sedang diburu." });
