@@ -471,6 +471,34 @@ footer {
 }
 
 
+
+/* AURELITH CITY: interactive map, dashboard and gameplay polish */
+.dashboard-ribbon{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:12px 0 18px;padding:12px 15px;background:linear-gradient(100deg,#1b303c,#17232d);border:1px solid #385362;border-left:3px solid #68b7dc}
+.dashboard-ribbon strong{color:#c9ecfb}.dashboard-ribbon .muted{margin:3px 0 0}
+.stat{position:relative;overflow:hidden}.stat:after{content:"";position:absolute;right:-18px;bottom:-27px;width:78px;height:78px;border:1px solid #ffffff0b;border-radius:50%}
+.map-toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 12px}
+.map-toolbar .muted{margin:0}
+.city-map{min-height:430px;background-color:#315548;isolation:isolate}
+.city-map:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(0deg,transparent 0 39px,#ffffff08 40px 41px),repeating-linear-gradient(90deg,transparent 0 39px,#ffffff08 40px 41px)}
+.district{z-index:2;cursor:pointer;transition:transform .16s,filter .16s;min-height:66px}
+.district:hover{transform:translateY(-3px);filter:brightness(1.14)}
+.d1{top:10%;left:6%}.d2{top:12%;right:6%}.d3{bottom:15%;left:7%}.d4{bottom:13%;right:7%}
+.d5{top:42%;left:38%;background:linear-gradient(#557f9a,#355c74);border-color:#b8d9eb}
+.d6{top:7%;left:42%;background:linear-gradient(#8b7756,#5c4c35);border-color:#e4d2a8}
+.d7{bottom:8%;left:42%;background:linear-gradient(#9a5e5e,#663c42);border-color:#e5b3b3}
+.d8{top:43%;right:6%;background:linear-gradient(#6e8960,#3f5e3b);border-color:#c4ddb6}
+.map-character{position:absolute;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#e8f8ff;color:#102331;border:3px solid #64b5df;box-shadow:0 0 0 5px #64b5df38,0 3px 10px #0008;font-size:17px;pointer-events:none;transition:left .35s,top .35s}
+.map-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:11px;color:#b5c8d1;font-size:11px}
+.map-legend span{display:inline-flex;align-items:center;gap:6px}.legend-dot{width:8px;height:8px;border-radius:50%;background:#64b5df;display:inline-block}
+.job-tools{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:10px;margin:15px 0}
+.job-tools input,.job-tools select{min-width:0}
+.job-meta{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0;color:var(--muted);font-size:12px}
+.job .actions button{min-width:130px}
+.gameplay-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+.gameplay-shortcuts button{min-height:54px}
+.activity-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;background:#10232c;border:1px solid #365260;color:#bde7f6;border-radius:3px;font-size:11px}
+@media(max-width:600px){.city-map{min-height:390px}.district{width:86px;min-height:60px;padding:5px}.district b{font-size:19px}.district small{font-size:8px}.d5{left:37%}.d6{left:39%}.d7{left:39%}.d8{right:3%}.job-tools{grid-template-columns:1fr}.gameplay-shortcuts{grid-template-columns:1fr}.dashboard-ribbon{align-items:flex-start}}
+
 </style>
 </head>
 <body>
@@ -521,6 +549,11 @@ footer {
       <div class="stat"><small>Daftar pekerjaan</small><strong id="statJobs">0</strong></div>
     </section>
 
+    <div class="dashboard-ribbon">
+      <div><strong>Selamat datang di Aurelith</strong><p class="muted">Bangun karier, jelajahi distrik, dan kelola kehidupan karaktermu.</p></div>
+      <span class="activity-chip" id="activityChip">● Warga aktif</span>
+    </div>
+
     <div class="tabs">
       <button class="active" data-tab="cityTab" onclick="showTab('cityTab',this)">🗺️ Kota</button>
       <button data-tab="jobsTab" onclick="showTab('jobsTab',this)">💼 Pekerjaan</button>
@@ -539,8 +572,14 @@ footer {
               <button class="district d2" onclick="visit('Distrik Bisnis',900,230)"><b>🏢</b><small>DISTRIK BISNIS</small></button>
               <button class="district d3" onclick="visit('Pasar',300,570)"><b>🏪</b><small>PASAR</small></button>
               <button class="district d4" onclick="visit('Taman Kota',920,580)"><b>🌳</b><small>TAMAN KOTA</small></button>
+              <button class="district d5" onclick="visit('Stasiun Aurelith',600,400)"><b>🚉</b><small>STASIUN</small></button>
+              <button class="district d6" onclick="visit('Kawasan Industri',590,170)"><b>🏭</b><small>INDUSTRI</small></button>
+              <button class="district d7" onclick="visit('Distrik Hiburan',600,690)"><b>🎭</b><small>HIBURAN</small></button>
+              <button class="district d8" onclick="visit('Klinik Kota',1000,410)"><b>🏥</b><small>KLINIK</small></button>
+              <div id="mapCharacter" class="map-character" aria-label="Posisi karakter kamu">🧑</div>
               <div id="mapLocation" class="map-label">📍 Alun-Alun Aurelith</div>
             </div>
+            <div class="map-legend"><span><i class="legend-dot"></i> Posisi karaktermu</span><span>🧭 Klik distrik untuk berpindah</span></div>
             <p class="muted">Posisi karakter disimpan ke server saat kamu memilih distrik.</p>
           </div>
           <div class="panel">
@@ -571,6 +610,11 @@ footer {
             <p>Saldo: <strong id="sideBalance">0</strong></p>
             <p>Aktivitas: <strong id="currentActivity">Santai</strong></p>
             <button class="secondary full" onclick="refreshAll()">↻ Segarkan data</button>
+            <div class="gameplay-shortcuts">
+              <button class="secondary" onclick="showTab('cityTab')">🗺️ Jelajah</button>
+              <button class="secondary" onclick="showTab('jobsTab')">💼 Karier</button>
+              <button class="secondary" onclick="showTab('walletTab')">💰 Dompet</button>
+            </div>
           </div>
         </div>
       </div>
@@ -579,7 +623,15 @@ footer {
     <section id="jobsTab" class="tab-panel">
       <div class="panel">
         <h2>💼 Pekerjaan di Aurelith</h2>
-        <p class="muted">Pilih pekerjaan untuk menerima gaji virtual. Setelah bekerja, ada batas 60 menit sebelum bisa bekerja lagi.</p>
+        <p class="muted">Bandingkan gaji dan lokasi pekerjaan. Gaji dibayarkan melalui sistem server; batas kerja tetap 60 menit.</p>
+        <div class="job-tools">
+          <input id="jobSearch" type="search" placeholder="Cari pekerjaan atau lokasi..." aria-label="Cari pekerjaan">
+          <select id="jobSort" aria-label="Urutkan pekerjaan">
+            <option value="salary-asc">Gaji terendah</option>
+            <option value="salary-desc">Gaji tertinggi</option>
+            <option value="name">Nama pekerjaan A–Z</option>
+          </select>
+        </div>
         <div id="jobsList" class="job-list"><div class="empty">Memuat pekerjaan...</div></div>
         <div id="jobsMessage" class="message" role="status"></div>
       </div>
@@ -657,6 +709,8 @@ let token = localStorage.getItem("aurelith_token") || "";
 let currentUser = null;
 let character = null;
 let jobs = [];
+let jobSearchTerm = "";
+let jobSortMode = "salary-asc";
 let settings = { bio:"", skinTone:"medium", outfit:"casual" };
 let authMode = "login";
 
@@ -816,6 +870,8 @@ function updateCharacterUI() {
   $("energyBar").style.width = Math.max(0, Math.min(100, Number(character.energy) || 0)) + "%";
   $("moodBar").style.width = Math.max(0, Math.min(100, Number(character.mood) || 0)) + "%";
   $("currentActivity").textContent = character.currentActivity || "Santai";
+  $("activityChip").textContent = "● " + (character.currentActivity || "Warga aktif");
+  updateMapCharacter();
 
   $("characterBio").textContent = settings.bio || "Belum ada bio karakter.";
   $("previewBio").textContent = settings.bio || "Belum ada bio karakter.";
@@ -831,15 +887,33 @@ async function loadJobs() {
   jobs = data.jobs || [];
   $("statJobs").textContent = String(jobs.length);
 
+  renderJobs();
+}
+
+function renderJobs() {
   const list = $("jobsList");
   list.replaceChildren();
+  const term = jobSearchTerm.trim().toLowerCase();
+  const visibleJobs = jobs.filter(job =>
+    String(job.name || "").toLowerCase().includes(term) ||
+    String(job.location || "").toLowerCase().includes(term)
+  );
+  visibleJobs.sort((a, b) => {
+    if (jobSortMode === "salary-desc") return Number(b.salary) - Number(a.salary);
+    if (jobSortMode === "name") return String(a.name).localeCompare(String(b.name), "id");
+    return Number(a.salary) - Number(b.salary);
+  });
 
   if (!jobs.length) {
     list.innerHTML = '<div class="empty">Belum ada pekerjaan di database.</div>';
     return;
   }
+  if (!visibleJobs.length) {
+    list.innerHTML = '<div class="empty">Tidak ada pekerjaan yang cocok dengan pencarianmu.</div>';
+    return;
+  }
 
-  for (const job of jobs) {
+  for (const job of visibleJobs) {
     const card = document.createElement("article");
     card.className = "job";
 
@@ -855,11 +929,13 @@ async function loadJobs() {
 
     head.append(title, salary);
 
-    const detail = document.createElement("p");
-    detail.className = "muted";
-    detail.textContent =
-      "Durasi: " + (job.duration_minutes ?? "—") + " menit · Lokasi: " +
-      (job.location || "Belum ditentukan");
+    const detail = document.createElement("div");
+    detail.className = "job-meta";
+    const duration = document.createElement("span");
+    duration.textContent = "⏱ Durasi: " + (job.duration_minutes ?? "—") + " menit";
+    const location = document.createElement("span");
+    location.textContent = "📍 " + (job.location || "Lokasi belum ditentukan");
+    detail.append(duration, location);
 
     const actions = document.createElement("div");
     actions.className = "actions";
@@ -975,6 +1051,25 @@ $("settingsForm").addEventListener("submit", async event => {
   }
 });
 
+function updateMapCharacter() {
+  const marker = $("mapCharacter");
+  if (!marker || !character) return;
+  const x = Math.max(25, Math.min(1175, Number(character.x) || 600));
+  const y = Math.max(25, Math.min(775, Number(character.y) || 400));
+  marker.style.left = (x / 1200 * 100) + "%";
+  marker.style.top = (y / 800 * 100) + "%";
+  marker.title = "Posisi karakter: " + Math.round(x) + ", " + Math.round(y);
+}
+
+$("jobSearch").addEventListener("input", event => {
+  jobSearchTerm = event.target.value;
+  renderJobs();
+});
+$("jobSort").addEventListener("change", event => {
+  jobSortMode = event.target.value;
+  renderJobs();
+});
+
 async function visit(place, x, y) {
   try {
     await api("/api/move", {
@@ -982,8 +1077,14 @@ async function visit(place, x, y) {
       body:JSON.stringify({x,y})
     });
 
+    if (character) {
+      character.x = x;
+      character.y = y;
+    }
+    updateMapCharacter();
     $("mapLocation").textContent = "📍 Lokasi: " + place;
     addEvent("Kamu berpindah ke " + place + ".");
+    $("activityChip").textContent = "● Menjelajah: " + place;
   } catch (error) {
     addEvent("Gagal memperbarui lokasi: " + error.message);
   }
