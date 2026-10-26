@@ -1,242 +1,461 @@
+const PASSWORD_ITERATIONS = 100000;
+const WORLD_WIDTH = 1200;
+const WORLD_HEIGHT = 800;
+const LIVING_COST_DEFAULT = 25;
+const MAX_SHIFT_MINUTES = 12 * 60;
 
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aurelith City — Virtual World</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #10131d;
-      color: #f4f5ff;
-      font-family: Inter, Arial, sans-serif;
-    }
-    header {
-      height: 70px;
-      padding: 0 6%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #191d2b;
-      border-bottom: 1px solid #30364b;
-    }
-    .logo { font-size: 21px; font-weight: 800; letter-spacing: 1px; }
-    .logo span { color: #a78bfa; }
-    .online { color: #7ee7b1; font-size: 13px; }
-    main { max-width: 1250px; margin: auto; padding: 28px 20px; }
-    .welcome { margin-bottom: 24px; }
-    .welcome h1 { font-size: clamp(25px, 4vw, 38px); margin: 0 0 8px; }
-    .welcome p { color: #9ca5bd; margin: 0; }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-      margin-bottom: 24px;
-    }
-    .panel, .stat {
-      background: #1a1f30;
-      border: 1px solid #30364b;
-      border-radius: 15px;
-    }
-    .stat { padding: 18px; }
-    .stat small { color: #9ca5bd; }
-    .stat strong { display: block; margin-top: 10px; font-size: 25px; }
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr);
-      gap: 20px;
-    }
-    .panel { padding: 20px; }
-    .panel h2 { font-size: 18px; margin: 0 0 16px; }
-    .city {
-      position: relative;
-      min-height: 390px;
-      overflow: hidden;
-      border-radius: 12px;
-      background:
-        linear-gradient(30deg, transparent 47%, #d3c69b 48%, #d3c69b 52%, transparent 53%),
-        linear-gradient(150deg, transparent 47%, #d3c69b 48%, #d3c69b 52%, transparent 53%),
-        #426c61;
-      background-size: 100% 100%;
-    }
-    .city:before, .city:after {
-      content: "";
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background-image:
-        linear-gradient(90deg, transparent 48%, #d3c69b 49%, #d3c69b 51%, transparent 52%);
-      opacity: .7;
-    }
-    .district {
-      position: absolute;
-      display: grid;
-      place-items: center;
-      width: 100px;
-      height: 75px;
-      border: 3px solid #d4c5a1;
-      border-radius: 8px;
-      background: #a87860;
-      box-shadow: 0 7px 0 #674a45;
-      font-size: 27px;
-      cursor: pointer;
-      transition: transform .2s;
-    }
-    .district:hover { transform: translateY(-5px); }
-    .district small { font-size: 10px; }
-    .d1 { top: 13%; left: 12%; }
-    .d2 { top: 17%; right: 12%; background: #7b79a8; }
-    .d3 { top: 53%; left: 17%; background: #b6a16b; }
-    .d4 { top: 57%; right: 15%; background: #628c75; }
-    .city-label {
-      position: absolute;
-      bottom: 12px;
-      left: 12px;
-      padding: 8px 12px;
-      background: #171b28dd;
-      border-radius: 8px;
-      font-size: 12px;
-    }
-    .profile { display: flex; gap: 13px; align-items: center; }
-    .avatar {
-      width: 55px; height: 55px; display: grid; place-items: center;
-      background: #39315d; border-radius: 14px; font-size: 28px;
-    }
-    .muted { color: #9ca5bd; font-size: 13px; }
-    .progress {
-      height: 7px; background: #30364b; border-radius: 9px; margin: 9px 0 18px;
-      overflow: hidden;
-    }
-    .progress div { height: 100%; width: 35%; background: #a78bfa; }
-    button {
-      border: 0; border-radius: 9px; padding: 11px 14px;
-      background: #8b79e8; color: white; font-weight: 700;
-      cursor: pointer;
-    }
-    button:hover { background: #a192ff; }
-    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
-    .secondary { background: #2c3349; }
-    .feed { margin-top: 20px; }
-    .event {
-      border-bottom: 1px solid #30364b; padding: 12px 0;
-      color: #c6cbe0; font-size: 13px;
-    }
-    .event:last-child { border-bottom: 0; }
-    footer { padding: 28px; text-align: center; color: #747e99; font-size: 12px; }
-    @media(max-width: 760px) {
-      .stats { grid-template-columns: repeat(2, 1fr); }
-      .layout { grid-template-columns: 1fr; }
-      header { padding: 0 18px; }
-      .city { min-height: 330px; }
-      .district { width: 78px; height: 65px; }
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <div class="logo">✦ AURELITH<span> CITY</span></div>
-    <div class="online">● Dunia virtual aktif</div>
-  </header>
+const json = (data, status = 200) => Response.json(data, {
+  status,
+  headers: { "Cache-Control": "no-store" }
+});
+const encoder = new TextEncoder();
 
-  <main>
-    <section class="welcome">
-      <h1>Bangun kehidupanmu sendiri.</h1>
-      <p>Setiap keputusan membentuk masa depanmu di Aurelith.</p>
-    </section>
+function toBase64(bytes) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+function fromBase64(value) {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  return Uint8Array.from(atob(base64 + "=".repeat((4 - base64.length % 4) % 4)), c => c.charCodeAt(0));
+}
+async function sha256(value) {
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(value));
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+async function derivePassword(password, salt, iterations) {
+  const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations, hash: "SHA-256" }, key, 256);
+  return new Uint8Array(bits);
+}
+async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const result = await derivePassword(password, salt, PASSWORD_ITERATIONS);
+  return `${PASSWORD_ITERATIONS}.${toBase64(salt)}.${toBase64(result)}`;
+}
+async function verifyPassword(password, stored) {
+  try {
+    const [iterationText, saltText, hashText] = stored.split(".");
+    const iterations = Number(iterationText);
+    if (!iterations || iterations > 1000000) return false;
+    const expected = fromBase64(hashText);
+    const actual = await derivePassword(password, fromBase64(saltText), iterations);
+    if (actual.length !== expected.length) return false;
+    let difference = 0;
+    for (let i = 0; i < actual.length; i++) difference |= actual[i] ^ expected[i];
+    return difference === 0;
+  } catch { return false; }
+}
+function makeToken() { return toBase64(crypto.getRandomValues(new Uint8Array(32))); }
+async function readBody(request) { try { return await request.json(); } catch { return null; } }
+function publicCharacter(row) {
+  if (!row) return null;
+  return {
+    id: row.id, displayName: row.display_name, x: row.x, y: row.y,
+    money: row.money, energy: row.energy, mood: row.mood,
+    currentActivity: row.current_activity
+  };
+}
+async function createSession(db, userId) {
+  const token = makeToken();
+  await db.prepare(`INSERT INTO sessions (id,user_id,token_hash,expires_at)
+    VALUES (?,?,?,datetime('now','+30 days'))`)
+    .bind(crypto.randomUUID(), userId, await sha256(token)).run();
+  return token;
+}
+async function getSession(request, db) {
+  const auth = request.headers.get("Authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || token.length > 200) return null;
+  return db.prepare(`
+    SELECT s.id AS session_id,s.user_id,u.username,u.email,
+      c.id AS character_id,c.display_name,c.x,c.y,c.money,c.energy,c.mood,c.current_activity
+    FROM sessions s JOIN users u ON u.id=s.user_id
+    JOIN characters c ON c.user_id=u.id
+    WHERE s.token_hash=? AND s.expires_at>datetime('now') LIMIT 1
+  `).bind(await sha256(token)).first();
+}
+function publicUser(row) { return { id: row.user_id, username: row.username, email: row.email }; }
+function authResponse(row) {
+  return {
+    user: publicUser(row),
+    character: publicCharacter({
+      id: row.character_id, display_name: row.display_name, x: row.x, y: row.y,
+      money: row.money, energy: row.energy, mood: row.mood, current_activity: row.current_activity
+    })
+  };
+}
+function isoNow() { return new Date().toISOString(); }
+function addMinutes(date, minutes) { return new Date(new Date(date).getTime() + minutes * 60000).toISOString(); }
+function gameLocalParts(date = new Date()) {
+  // Aurelith City uses UTC+8 for its in-game work schedule.
+  const shifted = new Date(date.getTime() + 8 * 60 * 60000);
+  return {
+    date: shifted.toISOString().slice(0, 10),
+    hour: shifted.getUTCHours(),
+    minute: shifted.getUTCMinutes(),
+    weekday: shifted.getUTCDay()
+  };
+}
+async function ensureEconomy(db, characterId) {
+  await db.batch([
+    db.prepare("INSERT OR IGNORE INTO bank_accounts(character_id,balance) VALUES(?,0)").bind(characterId),
+    db.prepare("INSERT OR IGNORE INTO economy_state(character_id,daily_living_cost,last_living_charge_at) VALUES(?,?,CURRENT_TIMESTAMP)").bind(characterId, LIVING_COST_DEFAULT),
+    db.prepare("INSERT OR IGNORE INTO character_settings(character_id) VALUES(?)").bind(characterId)
+  ]);
+}
+async function settleDueShifts(db) {
+  const now = isoNow();
+  const due = await db.prepare(`
+    SELECT id,character_id,job_id,job_name,shift_type,gross_pay,living_deduction,net_pay
+    FROM work_shifts WHERE status='working' AND ends_at<=?
+    ORDER BY ends_at LIMIT 100
+  `).bind(now).all();
 
-    <section class="stats">
-      <div class="stat"><small>Populasi kota</small><strong id="population">1.284</strong></div>
-      <div class="stat"><small>Ekonomi kota</small><strong id="economy">Rp 2,4 M</strong></div>
-      <div class="stat"><small>Bisnis aktif</small><strong>48</strong></div>
-      <div class="stat"><small>Aktivitas hari ini</small><strong id="activities">326</strong></div>
-    </section>
+  for (const shift of (due.results || [])) {
+    // Unique per-attempt key: a concurrent/repeated request cannot credit the same shift twice.
+    const paymentKey = `${now}|${crypto.randomUUID()}`;
+    await db.batch([
+      db.prepare(`UPDATE work_shifts SET status='completed',paid_at=?,completed_at=?
+        WHERE id=? AND status='working' AND ends_at<=?`)
+        .bind(paymentKey, now, shift.id, now),
+      db.prepare(`UPDATE characters SET money=money+(
+          SELECT net_pay FROM work_shifts WHERE id=? AND status='completed' AND paid_at=?
+        ), energy=MAX(0,energy-10), current_activity='idle', updated_at=CURRENT_TIMESTAMP
+        WHERE id=? AND EXISTS(SELECT 1 FROM work_shifts WHERE id=? AND status='completed' AND paid_at=?)`)
+        .bind(shift.id, paymentKey, shift.character_id, shift.id, paymentKey),
+      db.prepare(`INSERT OR IGNORE INTO payroll_slips
+        (id,shift_id,character_id,job_id,job_name,shift_type,gross_amount,deductions,net_amount,paid_at)
+        SELECT ?,id,character_id,job_id,job_name,shift_type,gross_pay,living_deduction,net_pay,?
+        FROM work_shifts WHERE id=? AND status='completed' AND paid_at=?`)
+        .bind(crypto.randomUUID(), now, shift.id, paymentKey),
+      db.prepare(`INSERT OR IGNORE INTO wallet_transactions(id,character_id,transaction_type,amount,description)
+        SELECT ?,character_id,'income',net_pay,?
+        FROM work_shifts WHERE id=? AND status='completed' AND paid_at=?`)
+        .bind(`pay-${shift.id}`, `Gaji ${shift.job_name} (${shift.shift_type === "extra" ? "shift tambahan" : "shift terjadwal"})`, shift.id, paymentKey)
+    ]);
+  }
+}
+async function chargeLivingCosts(db) {
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const dueRows = await db.prepare(`
+    SELECT c.id AS character_id, c.money, e.daily_living_cost, e.last_living_charge_at, e.living_arrears
+    FROM characters c JOIN economy_state e ON e.character_id=c.id
+    WHERE datetime(e.last_living_charge_at)<=datetime(?,'-24 hours')
+    LIMIT 100
+  `).bind(nowIso).all();
 
-    <section class="layout">
-      <div class="panel">
-        <h2>🗺️ Jelajahi Aurelith</h2>
-        <div class="city">
-          <button class="district d1" onclick="visit('Pusat Kota')">🏛️<small>PUSAT KOTA</small></button>
-          <button class="district d2" onclick="visit('Distrik Bisnis')">🏢<small>BISNIS</small></button>
-          <button class="district d3" onclick="visit('Pasar')">🏪<small>PASAR</small></button>
-          <button class="district d4" onclick="visit('Taman Kota')">🌳<small>TAMAN</small></button>
-          <div class="city-label" id="location">📍 Lokasi: Alun-Alun Aurelith</div>
-        </div>
-        <p class="muted">Pilih bangunan untuk menjelajahi distrik kota.</p>
-      </div>
-
-      <div>
-        <div class="panel">
-          <h2>👤 Profil Warga</h2>
-          <div class="profile">
-            <div class="avatar">🧑‍💼</div>
-            <div>
-              <strong>Warga Baru</strong>
-              <div class="muted">Level 1 · Penduduk Aurelith</div>
-            </div>
-          </div>
-          <p class="muted">Pengalaman · 35 / 100 XP</p>
-          <div class="progress"><div></div></div>
-          <p>💰 Saldo: <strong id="balance">Rp 1.000.000</strong></p>
-          <p>⚡ Energi: <strong id="energy">100 / 100</strong></p>
-          <div class="actions">
-            <button onclick="work()">💼 Bekerja</button>
-            <button class="secondary" onclick="rest()">🛌 Istirahat</button>
-          </div>
-        </div>
-
-        <div class="panel feed">
-          <h2>🌐 Aktivitas Kota</h2>
-          <div id="feed">
-            <div class="event">🏙️ Aurelith City siap menyambut warga baru.</div>
-            <div class="event">🏪 Pasar kota sedang beroperasi.</div>
-            <div class="event">🤖 Warga virtual menjalani rutinitas harian.</div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer>AURELITH CITY · A WORLD THAT NEVER STOPS</footer>
-
-  <script>
-    let balance = 1000000;
-    let energy = 100;
-
-    function addEvent(message) {
-      const feed = document.getElementById("feed");
-      const item = document.createElement("div");
-      item.className = "event";
-      item.textContent = message;
-      feed.prepend(item);
+  for (const row of (dueRows.results || [])) {
+    const local = gameLocalParts(now);
+    const chargeDate = local.date;
+    const existing = await db.prepare("SELECT id FROM living_charges WHERE character_id=? AND charge_date=?")
+      .bind(row.character_id, chargeDate).first();
+    if (existing) {
+      await db.prepare("UPDATE economy_state SET last_living_charge_at=?,updated_at=CURRENT_TIMESTAMP WHERE character_id=?")
+        .bind(nowIso, row.character_id).run();
+      continue;
     }
+    const amount = Math.max(0, Number(row.daily_living_cost || LIVING_COST_DEFAULT));
+    const wallet = Math.max(0, Number(row.money || 0));
+    const walletPaid = Math.min(wallet, amount);
+    const remaining = amount - walletPaid;
+    const bank = await db.prepare("SELECT balance FROM bank_accounts WHERE character_id=?").bind(row.character_id).first();
+    const bankPaid = Math.min(Math.max(0, Number(bank?.balance || 0)), remaining);
+    const unpaid = remaining - bankPaid;
+    const chargeId = crypto.randomUUID();
+    await db.batch([
+      db.prepare("UPDATE characters SET money=MAX(0,money-?),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(walletPaid, row.character_id),
+      db.prepare("UPDATE bank_accounts SET balance=MAX(0,balance-?),updated_at=CURRENT_TIMESTAMP WHERE character_id=?").bind(bankPaid, row.character_id),
+      db.prepare("UPDATE economy_state SET last_living_charge_at=?,living_arrears=living_arrears+?,updated_at=CURRENT_TIMESTAMP WHERE character_id=?")
+        .bind(nowIso, unpaid, row.character_id),
+      db.prepare(`INSERT OR IGNORE INTO living_charges(id,character_id,charge_date,amount,paid_from_wallet,paid_from_bank,unpaid_amount)
+        VALUES(?,?,?,?,?,?,?)`).bind(chargeId, row.character_id, chargeDate, amount, walletPaid, bankPaid, unpaid),
+      db.prepare(`INSERT OR IGNORE INTO wallet_transactions(id,character_id,transaction_type,amount,description)
+        VALUES(?,?,?,?,?)`).bind(`living-${row.character_id}-${chargeDate}`, row.character_id, "expense", -amount, "Biaya hidup harian")
+    ]);
+  }
+}
+async function settleWorld(db) {
+  await settleDueShifts(db);
+  await chargeLivingCosts(db);
+}
+async function economySummary(db, characterId) {
+  await ensureEconomy(db, characterId);
+  const character = await db.prepare("SELECT money,energy,current_activity FROM characters WHERE id=?").bind(characterId).first();
+  const bank = await db.prepare("SELECT balance FROM bank_accounts WHERE character_id=?").bind(characterId).first();
+  const state = await db.prepare("SELECT daily_living_cost,last_living_charge_at,living_arrears FROM economy_state WHERE character_id=?").bind(characterId).first();
+  const activeShift = await db.prepare(`SELECT id,job_id,job_name,shift_type,status,started_at,ends_at,gross_pay,net_pay
+    FROM work_shifts WHERE character_id=? AND status='working' ORDER BY started_at DESC LIMIT 1`).bind(characterId).first();
+  const contract = await db.prepare(`SELECT ec.*,j.name AS job_name,j.salary,j.duration_minutes,j.location
+    FROM employment_contracts ec JOIN jobs j ON j.id=ec.job_id
+    WHERE ec.character_id=? AND ec.active=1 LIMIT 1`).bind(characterId).first();
+  return { walletBalance: Number(character?.money || 0), bankBalance: Number(bank?.balance || 0),
+    totalBalance: Number(character?.money || 0) + Number(bank?.balance || 0),
+    dailyLivingCost: Number(state?.daily_living_cost || LIVING_COST_DEFAULT),
+    livingArrears: Number(state?.living_arrears || 0),
+    nextLivingChargeAt: state?.last_living_charge_at || null,
+    activeShift, contract };
+}
+async function handleApi(request, env) {
+  const url = new URL(request.url), path = url.pathname, method = request.method, db = env.DB;
 
-    function visit(place) {
-      document.getElementById("location").textContent = "📍 Lokasi: " + place;
-      addEvent("🚶 Kamu mengunjungi " + place + ".");
-    }
+  if (path === "/api/health" && method === "GET")
+    return json({ success: true, city: "Aurelith City", backend: "online", databaseBinding: Boolean(db) });
+  if (path === "/api/db-test" && method === "GET")
+    return json({ success: true, database: "connected", result: await db.prepare("SELECT 1 AS connected").first() });
 
-    function work() {
-      if (energy < 20) {
-        addEvent("⚠️ Energi tidak cukup. Istirahatlah dahulu.");
-        return;
-      }
-      energy -= 20;
-      balance += 100000;
-      document.getElementById("balance").textContent =
-        "Rp " + balance.toLocaleString("id-ID");
-      document.getElementById("energy").textContent = energy + " / 100";
-      document.getElementById("activities").textContent =
-        Number(document.getElementById("activities").textContent) + 1;
-      addEvent("💼 Kamu bekerja dan memperoleh Rp 100.000.");
-    }
+  // Work completion and living costs are checked on API requests too, not only by Cron.
+  await settleWorld(db);
 
-    function rest() {
-      energy = Math.min(100, energy + 40);
-      document.getElementById("energy").textContent = energy + " / 100";
-      addEvent("🛌 Kamu beristirahat dan memulihkan energi.");
+  if (path === "/api/register" && method === "POST") {
+    const body = await readBody(request);
+    if (!body) return json({ error: "Data tidak valid." }, 400);
+    const username = String(body.username || "").trim().toLowerCase();
+    const email = String(body.email || "").trim().toLowerCase();
+    const password = String(body.password || "");
+    const displayName = String(body.displayName || username).trim();
+    if (!/^[a-z0-9_]{3,20}$/.test(username)) return json({ error: "Username harus 3–20 karakter: huruf, angka, atau garis bawah." }, 400);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return json({ error: "Masukkan alamat email yang valid." }, 400);
+    if (password.length < 8 || password.length > 128) return json({ error: "Password harus 8–128 karakter." }, 400);
+    if (!displayName || displayName.length > 30) return json({ error: "Nama karakter maksimal 30 karakter." }, 400);
+    const id = crypto.randomUUID(), characterId = crypto.randomUUID(), passwordHash = await hashPassword(password);
+    try {
+      await db.batch([
+        db.prepare("INSERT INTO users(id,username,email,password_hash) VALUES(?,?,?,?)").bind(id, username, email, passwordHash),
+        db.prepare(`INSERT INTO characters(id,user_id,display_name,x,y,money,energy,mood,current_activity)
+          VALUES(?,?,?,600,400,1000,100,100,'idle')`).bind(characterId, id, displayName),
+        db.prepare("INSERT OR IGNORE INTO bank_accounts(character_id,balance) VALUES(?,0)").bind(characterId),
+        db.prepare("INSERT OR IGNORE INTO economy_state(character_id,daily_living_cost,last_living_charge_at) VALUES(?,?,CURRENT_TIMESTAMP)").bind(characterId, LIVING_COST_DEFAULT),
+        db.prepare("INSERT OR IGNORE INTO character_settings(character_id) VALUES(?)").bind(characterId)
+      ]);
+    } catch (error) {
+      if (/unique|constraint/i.test(String(error?.message || ""))) return json({ error: "Username atau email sudah digunakan." }, 409);
+      throw error;
     }
-  </script>
-</body>
-</html>
+    const token = await createSession(db, id);
+    return json({ success: true, token, user: { id, username, email },
+      character: { id: characterId, displayName, x: 600, y: 400, money: 1000, energy: 100, mood: 100, currentActivity: "idle" } }, 201);
+  }
+
+  if (path === "/api/login" && method === "POST") {
+    const body = await readBody(request);
+    if (!body) return json({ error: "Data tidak valid." }, 400);
+    const identifier = String(body.identifier || "").trim().toLowerCase(), password = String(body.password || "");
+    if (!identifier || !password || identifier.length > 254) return json({ error: "Isi username/email dan password." }, 400);
+    const user = await db.prepare("SELECT id,username,email,password_hash FROM users WHERE username=? COLLATE NOCASE OR email=? COLLATE NOCASE LIMIT 1").bind(identifier, identifier).first();
+    if (!user || !(await verifyPassword(password, user.password_hash))) return json({ error: "Username/email atau password salah." }, 401);
+    const session = await db.prepare(`SELECT ? AS user_id,? AS username,? AS email,c.id AS character_id,c.display_name,c.x,c.y,c.money,c.energy,c.mood,c.current_activity
+      FROM characters c WHERE c.user_id=? LIMIT 1`).bind(user.id,user.username,user.email,user.id).first();
+    if (!session) return json({ error: "Karakter tidak ditemukan. Hubungi pengelola kota." }, 500);
+    const token = await createSession(db, user.id);
+    await ensureEconomy(db, session.character_id);
+    return json({ success: true, token, ...authResponse(session) });
+  }
+
+  if (path === "/api/jobs" && method === "GET") {
+    const result = await db.prepare("SELECT id,name,salary,duration_minutes,location FROM jobs ORDER BY salary ASC").all();
+    return json({ jobs: result.results || [] });
+  }
+
+  if (path === "/api/me" && method === "GET") {
+    const session = await getSession(request, db);
+    if (!session) return json({ error: "Sesi berakhir. Silakan login kembali." }, 401);
+    await ensureEconomy(db, session.character_id);
+    return json({ success: true, ...authResponse(session), economy: await economySummary(db, session.character_id) });
+  }
+
+  if (path === "/api/logout" && method === "POST") {
+    const authorization = request.headers.get("Authorization") || "", token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+    if (token && token.length <= 200) await db.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await sha256(token)).run();
+    return json({ success: true });
+  }
+
+  const session = await getSession(request, db);
+  if (path.startsWith("/api/") && !session) return json({ error: "Sesi berakhir. Silakan login kembali." }, 401);
+  if (!session) return json({ error: "Endpoint API tidak ditemukan." }, 404);
+  const characterId = session.character_id;
+  await ensureEconomy(db, characterId);
+
+  if (path === "/api/move" && method === "POST") {
+    const body = await readBody(request);
+    if (!body) return json({ error: "Data lokasi tidak valid." }, 400);
+    const x = Number(body.x), y = Number(body.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return json({ error: "Koordinat tidak valid." }, 400);
+    const active = await db.prepare("SELECT id FROM work_shifts WHERE character_id=? AND status='working' LIMIT 1").bind(characterId).first();
+    if (active) return json({ error: "Karakter sedang bekerja dan tidak bisa berpindah lokasi." }, 409);
+    const safeX = Math.max(25, Math.min(WORLD_WIDTH - 25, x)), safeY = Math.max(25, Math.min(WORLD_HEIGHT - 25, y));
+    await db.prepare("UPDATE characters SET x=?,y=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(safeX,safeY,characterId).run();
+    return json({ success: true, x: safeX, y: safeY });
+  }
+
+  if (path === "/api/work/schedule" && method === "GET") {
+    const contract = await db.prepare(`SELECT ec.*,j.name AS job_name,j.salary,j.duration_minutes,j.location
+      FROM employment_contracts ec JOIN jobs j ON j.id=ec.job_id WHERE ec.character_id=? AND ec.active=1 LIMIT 1`).bind(characterId).first();
+    return json({ success: true, contract: contract || null });
+  }
+
+  if (path === "/api/work/schedule" && method === "POST") {
+    const body = await readBody(request);
+    const jobId = String(body?.jobId || "");
+    const startHour = Number(body?.startHour ?? 9), endHour = Number(body?.endHour ?? 17);
+    const workDays = Array.isArray(body?.workDays) ? body.workDays.map(Number) : [1,2,3,4,5];
+    if (!Number.isInteger(startHour) || !Number.isInteger(endHour) || startHour < 0 || startHour > 23 || endHour < 1 || endHour > 24 || endHour <= startHour)
+      return json({ error: "Jam mulai/selesai tidak valid. Shift harus berada dalam hari yang sama." }, 400);
+    if (!workDays.length || workDays.some(d => !Number.isInteger(d) || d < 0 || d > 6))
+      return json({ error: "Hari kerja tidak valid. Gunakan 0=Minggu sampai 6=Sabtu." }, 400);
+    const job = await db.prepare("SELECT id,name FROM jobs WHERE id=? LIMIT 1").bind(jobId).first();
+    if (!job) return json({ error: "Pekerjaan tidak ditemukan." }, 404);
+    const activeShift = await db.prepare("SELECT id FROM work_shifts WHERE character_id=? AND status='working' LIMIT 1").bind(characterId).first();
+    if (activeShift) return json({ error: "Selesaikan shift aktif sebelum mengganti jadwal." }, 409);
+    await db.prepare(`INSERT INTO employment_contracts(id,character_id,job_id,schedule_start_hour,schedule_end_hour,work_days,active,updated_at)
+      VALUES(?,?,?,?,?,?,1,CURRENT_TIMESTAMP)
+      ON CONFLICT(character_id) DO UPDATE SET job_id=excluded.job_id,schedule_start_hour=excluded.schedule_start_hour,
+      schedule_end_hour=excluded.schedule_end_hour,work_days=excluded.work_days,active=1,updated_at=CURRENT_TIMESTAMP`)
+      .bind(crypto.randomUUID(),characterId,jobId,startHour,endHour,[...new Set(workDays)].sort().join(",")).run();
+    return json({ success: true, message: "Jadwal kerja berhasil disimpan.", contract: await db.prepare(`SELECT ec.*,j.name AS job_name,j.salary,j.duration_minutes,j.location
+      FROM employment_contracts ec JOIN jobs j ON j.id=ec.job_id WHERE ec.character_id=?`).bind(characterId).first() });
+  }
+
+  if (path === "/api/work/start" && method === "POST" || path === "/api/work" && method === "POST") {
+    const body = await readBody(request), jobId = String(body?.jobId || "");
+    const shiftType = String(body?.shiftType || body?.type || "extra") === "scheduled" ? "scheduled" : "extra";
+    const job = await db.prepare("SELECT id,name,salary,duration_minutes,location FROM jobs WHERE id=? LIMIT 1").bind(jobId).first();
+    if (!job) return json({ error: "Pekerjaan tidak ditemukan." }, 404);
+    const active = await db.prepare("SELECT id,ends_at FROM work_shifts WHERE character_id=? AND status='working' LIMIT 1").bind(characterId).first();
+    if (active) return json({ error: "Karakter masih menjalani shift. Selesaikan dulu sebelum memulai pekerjaan baru.", activeShift: active }, 409);
+    const duration = Math.max(1, Math.min(MAX_SHIFT_MINUTES, Number(job.duration_minutes) || 30));
+    if (shiftType === "scheduled") {
+      const contract = await db.prepare("SELECT * FROM employment_contracts WHERE character_id=? AND active=1").bind(characterId).first();
+      if (!contract || contract.job_id !== job.id) return json({ error: "Jadwalkan pekerjaan ini sebagai pekerjaan utama terlebih dahulu." }, 409);
+      const p = gameLocalParts();
+      const minuteOfDay = p.hour * 60 + p.minute;
+      if (!contract.work_days.split(",").map(Number).includes(p.weekday) ||
+          minuteOfDay < Number(contract.schedule_start_hour) * 60 ||
+          minuteOfDay >= Number(contract.schedule_end_hour) * 60)
+        return json({ error: "Di luar jadwal kerja. Gunakan shift tambahan atau mulai saat jam kerja." }, 409);
+      if (minuteOfDay + duration > Number(contract.schedule_end_hour) * 60)
+        return json({ error: "Durasi shift melewati jam pulang. Pilih shift tambahan atau mulai lebih awal." }, 409);
+    }
+    const now = isoNow(), endsAt = addMinutes(now, duration), gross = Math.max(0, Number(job.salary) || 0);
+    // Current policy: living costs are charged separately every 24 hours, not deducted twice from wages.
+    const shiftId = crypto.randomUUID();
+    await db.batch([
+      db.prepare(`INSERT INTO work_shifts(id,character_id,job_id,job_name,shift_type,status,started_at,ends_at,gross_pay,living_deduction,net_pay)
+        VALUES(?,?,?,?,?,'working',?,?,?,0,?)`).bind(shiftId,characterId,job.id,job.name,shiftType,now,endsAt,gross,gross),
+      db.prepare("UPDATE characters SET current_activity=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(`Bekerja: ${job.name}`,characterId),
+      db.prepare(`INSERT INTO activities(id,character_id,activity_type,details,status,started_at)
+        VALUES(?,?, 'work',?,'in_progress',CURRENT_TIMESTAMP)`).bind(crypto.randomUUID(),characterId,`${job.name} (${shiftType})`)
+    ]);
+    return json({ success: true, message: `Shift ${job.name} dimulai. Durasi ${duration} menit waktu nyata. Gaji ${gross} akan dibayarkan setelah selesai.`, shift: {
+      id: shiftId, jobId: job.id, jobName: job.name, shiftType, status: "working", startedAt: now, endsAt, durationMinutes: duration, grossPay: gross, netPay: gross
+    }, economy: await economySummary(db,characterId) }, 201);
+  }
+
+  if (path === "/api/work/cancel" && method === "POST") {
+    const body = await readBody(request), shiftId = String(body?.shiftId || "");
+    const shift = await db.prepare("SELECT * FROM work_shifts WHERE id=? AND character_id=? AND status='working'").bind(shiftId,characterId).first();
+    if (!shift) return json({ error: "Shift aktif tidak ditemukan." }, 404);
+    const now = isoNow();
+    await db.batch([
+      db.prepare("UPDATE work_shifts SET status='cancelled',completed_at=? WHERE id=? AND character_id=? AND status='working'").bind(now,shiftId,characterId),
+      db.prepare("UPDATE characters SET current_activity='idle',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(characterId),
+      db.prepare("UPDATE activities SET status='cancelled' WHERE character_id=? AND activity_type='work' AND status='in_progress'").bind(characterId)
+    ]);
+    return json({ success: true, message: "Shift dibatalkan. Tidak ada gaji yang dibayarkan." });
+  }
+
+  if (path === "/api/work/state" && method === "GET") {
+    const shifts = await db.prepare("SELECT * FROM work_shifts WHERE character_id=? ORDER BY created_at DESC LIMIT 30").bind(characterId).all();
+    const slips = await db.prepare("SELECT * FROM payroll_slips WHERE character_id=? ORDER BY created_at DESC LIMIT 30").bind(characterId).all();
+    return json({ success: true, economy: await economySummary(db,characterId), shifts: shifts.results || [], payslips: slips.results || [] });
+  }
+
+  if (path === "/api/economy" && method === "GET") {
+    const economy = await economySummary(db,characterId);
+    const transactions = await db.prepare("SELECT id,transaction_type,amount,description,created_at FROM wallet_transactions WHERE character_id=? ORDER BY created_at DESC LIMIT 100").bind(characterId).all();
+    const slips = await db.prepare("SELECT * FROM payroll_slips WHERE character_id=? ORDER BY created_at DESC LIMIT 30").bind(characterId).all();
+    const charges = await db.prepare("SELECT * FROM living_charges WHERE character_id=? ORDER BY charge_date DESC LIMIT 30").bind(characterId).all();
+    return json({ success: true, economy, transactions: transactions.results || [], payslips: slips.results || [], livingCharges: charges.results || [] });
+  }
+
+  if (path === "/api/wallet" && method === "GET") {
+    const transactions = await db.prepare("SELECT id,transaction_type,amount,description,created_at FROM wallet_transactions WHERE character_id=? ORDER BY created_at DESC LIMIT 100").bind(characterId).all();
+    const economy = await economySummary(db,characterId);
+    return json({ success: true, balance: economy.walletBalance, walletBalance: economy.walletBalance, bankBalance: economy.bankBalance,
+      transactions: transactions.results || [], economy });
+  }
+
+  if (path === "/api/bank" && method === "GET") return json({ success: true, economy: await economySummary(db,characterId) });
+
+  if (path === "/api/bank" && method === "POST") {
+    const body = await readBody(request), action = String(body?.action || ""), amount = Math.floor(Number(body?.amount));
+    if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 1000000000) return json({ error: "Nominal transaksi tidak valid." }, 400);
+    const char = await db.prepare("SELECT money FROM characters WHERE id=?").bind(characterId).first();
+    const bank = await db.prepare("SELECT balance FROM bank_accounts WHERE character_id=?").bind(characterId).first();
+    if (action === "deposit") {
+      if (Number(char.money) < amount) return json({ error: "Saldo dompet tidak mencukupi." }, 409);
+      await db.batch([
+        db.prepare("UPDATE characters SET money=money-?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND money>=?").bind(amount,characterId,amount),
+        db.prepare("UPDATE bank_accounts SET balance=balance+?,updated_at=CURRENT_TIMESTAMP WHERE character_id=?").bind(amount,characterId),
+        db.prepare("INSERT INTO wallet_transactions(id,character_id,transaction_type,amount,description) VALUES(?,?,'transfer',?,'Setoran ke bank')").bind(crypto.randomUUID(),characterId,-amount)
+      ]);
+    } else if (action === "withdraw") {
+      if (Number(bank?.balance || 0) < amount) return json({ error: "Saldo bank tidak mencukupi." }, 409);
+      await db.batch([
+        db.prepare("UPDATE bank_accounts SET balance=balance-?,updated_at=CURRENT_TIMESTAMP WHERE character_id=? AND balance>=?").bind(amount,characterId,amount),
+        db.prepare("UPDATE characters SET money=money+?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(amount,characterId),
+        db.prepare("INSERT INTO wallet_transactions(id,character_id,transaction_type,amount,description) VALUES(?,?,'transfer',?,'Penarikan dari bank')").bind(crypto.randomUUID(),characterId,amount)
+      ]);
+    } else return json({ error: "Action harus deposit atau withdraw." }, 400);
+    return json({ success: true, message: action === "deposit" ? "Setoran berhasil." : "Penarikan berhasil.", economy: await economySummary(db,characterId) });
+  }
+
+  if (path === "/api/economy/settings" && method === "GET") {
+    const state = await db.prepare("SELECT * FROM economy_state WHERE character_id=?").bind(characterId).first();
+    return json({ success: true, settings: state });
+  }
+
+  if (path === "/api/economy/settings" && method === "POST") {
+    const body = await readBody(request), dailyCost = Math.floor(Number(body?.dailyLivingCost));
+    if (!Number.isSafeInteger(dailyCost) || dailyCost < 0 || dailyCost > 1000000) return json({ error: "Biaya hidup harian harus 0 sampai 1.000.000." }, 400);
+    await db.prepare("UPDATE economy_state SET daily_living_cost=?,updated_at=CURRENT_TIMESTAMP WHERE character_id=?").bind(dailyCost,characterId).run();
+    return json({ success: true, message: "Biaya hidup diperbarui.", economy: await economySummary(db,characterId) });
+  }
+
+  if (path === "/api/character-settings" && method === "GET") {
+    const settings = await db.prepare("SELECT bio,skin_tone AS skinTone,outfit FROM character_settings WHERE character_id=?").bind(characterId).first();
+    return json({ success: true, settings: settings || { bio: "", skinTone: "medium", outfit: "casual" } });
+  }
+
+  if (path === "/api/character-settings" && method === "POST") {
+    const body = await readBody(request), bio = String(body?.bio || "").slice(0,240);
+    const skinTone = ["light","medium","dark"].includes(body?.skinTone) ? body.skinTone : "medium";
+    const outfit = ["casual","formal","worker","sport"].includes(body?.outfit) ? body.outfit : "casual";
+    await db.prepare(`INSERT INTO character_settings(character_id,bio,skin_tone,outfit,updated_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP)
+      ON CONFLICT(character_id) DO UPDATE SET bio=excluded.bio,skin_tone=excluded.skin_tone,outfit=excluded.outfit,updated_at=CURRENT_TIMESTAMP`)
+      .bind(characterId,bio,skinTone,outfit).run();
+    return json({ success: true, message: "Pengaturan karakter disimpan.", settings: { bio, skinTone, outfit } });
+  }
+
+  return json({ error: "Endpoint API tidak ditemukan." }, 404);
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
+    if (!env.DB) return json({ error: "Binding database DB belum dikonfigurasi." }, 500);
+    try { return await handleApi(request,env); }
+    catch (error) {
+      console.error("Aurelith API error:",error);
+      return json({ error: "Terjadi kesalahan server.", detail: String(error?.message || error) },500);
+    }
+  },
+  async scheduled(controller, env, ctx) {
+    if (!env.DB) return;
+    ctx.waitUntil((async () => {
+      await settleWorld(env.DB);
+    })());
+  }
+};
