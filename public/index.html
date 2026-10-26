@@ -505,6 +505,23 @@ footer {
 .game-activity-row{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px}
 .game-activity-row:last-child{border-bottom:0}
 @media(max-width:800px){#gameTab .stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Multiplayer social UI */
+.social-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0}
+.social-list{display:flex;flex-direction:column;gap:8px}
+.player-row,.friend-row{display:flex;align-items:center;gap:10px;padding:10px;background:#13232c;border:1px solid var(--border);min-width:0}
+.player-avatar{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;border-radius:8px;background:#29414d;font-size:21px}
+.player-info{flex:1;min-width:0}.player-info strong{display:block;overflow-wrap:anywhere}.player-info small{color:var(--muted);display:block;margin-top:3px}
+.online-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#6fc69a;margin-right:5px}
+.offline-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#77858b;margin-right:5px}
+.player-actions{display:flex;gap:6px;flex-wrap:wrap}.player-actions button{padding:7px 9px;font-size:11px}
+.chat-channels{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.chat-channels button.active{border-color:#80c7e8;color:#c9edff;background:#203d4a}
+.chat-messages{height:330px;overflow:auto;background:#0d1a21;border:1px solid var(--border);padding:10px;display:flex;flex-direction:column;gap:9px}
+.chat-line{max-width:100%;overflow-wrap:anywhere;font-size:12px;line-height:1.5}
+.chat-line strong{color:#bde5f6}.chat-line .chat-time{color:#7f9aa6;font-size:10px;margin-left:6px}
+.chat-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:9px}.chat-form input{min-width:0}
+@media(max-width:600px){.player-row,.friend-row{align-items:flex-start;flex-wrap:wrap}.player-actions{width:100%;padding-left:48px}.chat-messages{height:280px}}
 </style>
 </head>
 <body>
@@ -565,6 +582,7 @@ footer {
       <button data-tab="jobsTab" onclick="showTab('jobsTab',this)">💼 Pekerjaan</button>
       <button data-tab="walletTab" onclick="showTab('walletTab',this)">💰 Dompet</button>
       <button data-tab="gameTab" onclick="showTab('gameTab',this)">🎮 Aktivitas & kriminalitas</button>
+      <button data-tab="socialTab" onclick="showTab('socialTab',this)">👥 Multiplayer</button>
       <button data-tab="settingsTab" onclick="showTab('settingsTab',this)">👤 Karakter</button>
     </div>
 
@@ -712,6 +730,46 @@ footer {
       </div>
     </section>
 
+    <section id="socialTab" class="tab-panel">
+      <div class="layout">
+        <div class="stack">
+          <div class="panel">
+            <h2>👥 Warga lain di Aurelith</h2>
+            <p class="muted">Daftar warga yang baru aktif. Tekan profil untuk memulai pesan pribadi atau menambahkan teman.</p>
+            <div class="social-toolbar">
+              <span id="socialOnlineCount" class="activity-chip">Mencari warga...</span>
+              <button class="secondary" onclick="refreshSocial()">↻ Segarkan</button>
+            </div>
+            <div id="playersList" class="social-list"><div class="empty">Memuat warga...</div></div>
+          </div>
+          <div class="panel">
+            <h2>🤝 Pertemanan</h2>
+            <p class="muted">Permintaan masuk bisa diterima atau ditolak. Permintaan dua arah otomatis menjadi pertemanan.</p>
+            <div id="friendsList" class="social-list"><div class="empty">Memuat daftar teman...</div></div>
+            <div id="friendsMessage" class="message" role="status"></div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="panel">
+            <h2>💬 Chat kota</h2>
+            <div class="chat-channels">
+              <button class="secondary active" data-channel="global" onclick="selectChatChannel('global',this)">🌐 Global</button>
+              <button class="secondary" data-channel="local" onclick="selectChatChannel('local',this)">📍 Sekitar</button>
+              <button class="secondary" data-channel="whisper" onclick="selectChatChannel('whisper',this)">🔒 Pribadi</button>
+            </div>
+            <div id="whisperTarget" class="notice hidden">Pesan pribadi ke: <strong id="whisperTargetName"></strong> <button class="secondary" onclick="clearWhisper()">Ganti pemain</button></div>
+            <div id="chatMessages" class="chat-messages" aria-live="polite"><div class="empty">Memuat pesan...</div></div>
+            <form id="chatForm" class="chat-form">
+              <input id="chatInput" maxlength="500" placeholder="Tulis pesan..." autocomplete="off" required>
+              <button id="chatSend" type="submit">Kirim</button>
+            </form>
+            <p class="muted">Jangan bagikan password, data pribadi, atau informasi sensitif melalui chat.</p>
+            <div id="chatMessageStatus" class="message" role="status"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="settingsTab" class="tab-panel">
       <div class="layout">
         <div class="panel">
@@ -770,6 +828,10 @@ let jobs = [];
 let jobSearchTerm = "";
 let jobSortMode = "salary-asc";
 let gameState = null;
+let socialChannel = "global";
+let whisperTargetId = "";
+let whisperTargetName = "";
+let socialPollBusy = false;
 let settings = { bio:"", skinTone:"medium", outfit:"casual" };
 let authMode = "login";
 
@@ -905,6 +967,7 @@ async function logout(callServer = true) {
 
   token = "";
   localStorage.removeItem("aurelith_token");
+  socialPollBusy = false;
   currentUser = null;
   character = null;
   $("cityView").classList.add("hidden");
@@ -1354,6 +1417,7 @@ function showTab(tabId, button) {
   if (tabId === "jobsTab" && !jobs.length) loadJobs().catch(e => addEvent(e.message));
   if (tabId === "settingsTab") loadSettings().catch(e => addEvent(e.message));
   if (tabId === "gameTab") loadGameState().catch(e => showGameMessage(e.message, false));
+  if (tabId === "socialTab") refreshSocial().catch(e => setSocialStatus(e.message, false));
 }
 
 async function refreshAll() {
@@ -1375,6 +1439,218 @@ async function refreshAll() {
     }
   }
 }
+
+function setSocialStatus(message, good = true) {
+  const el = $("chatMessageStatus");
+  if (!el) return;
+  el.style.color = good ? "var(--green)" : "var(--red)";
+  el.textContent = message || "";
+}
+
+function selectChatChannel(channel, button) {
+  if (!["global","local","whisper"].includes(channel)) return;
+  if (channel === "whisper" && !whisperTargetId) {
+    setSocialStatus("Pilih pemain dari daftar warga terlebih dahulu.", false);
+    return;
+  }
+  socialChannel = channel;
+  document.querySelectorAll("[data-channel]").forEach(el => el.classList.toggle("active", el.dataset.channel === channel));
+  $("whisperTarget").classList.toggle("hidden", channel !== "whisper");
+  setSocialStatus("");
+  loadChat().catch(e => setSocialStatus(e.message, false));
+}
+
+function clearWhisper() {
+  whisperTargetId = "";
+  whisperTargetName = "";
+  socialChannel = "global";
+  document.querySelectorAll("[data-channel]").forEach(el => el.classList.toggle("active", el.dataset.channel === "global"));
+  $("whisperTarget").classList.add("hidden");
+  loadChat().catch(e => setSocialStatus(e.message, false));
+}
+
+async function openWhisper(playerId, playerName) {
+  whisperTargetId = playerId;
+  whisperTargetName = playerName;
+  socialChannel = "whisper";
+  $("whisperTargetName").textContent = playerName;
+  $("whisperTarget").classList.remove("hidden");
+  document.querySelectorAll("[data-channel]").forEach(el => el.classList.toggle("active", el.dataset.channel === "whisper"));
+  setSocialStatus("Chat pribadi dengan " + playerName, true);
+  await loadChat();
+  $("chatInput").focus();
+}
+
+async function refreshSocial() {
+  if (socialPollBusy || !token) return;
+  socialPollBusy = true;
+  try {
+    await api("/api/social/presence", {method:"POST", body:"{}"});
+    const [players, friends] = await Promise.all([
+      api("/api/social/players"),
+      api("/api/social/friends")
+    ]);
+    renderPlayers(players.players || []);
+    renderFriends(friends.friends || []);
+    await loadChat();
+  } finally {
+    socialPollBusy = false;
+  }
+}
+
+function renderPlayers(players) {
+  const list = $("playersList");
+  list.replaceChildren();
+  const online = players.filter(p => Number(p.online) === 1);
+  $("socialOnlineCount").textContent = online.length + " warga aktif · " + players.length + " ditemukan";
+  if (!players.length) {
+    list.innerHTML = '<div class="empty">Belum ada pemain lain. Undang teman untuk membuat kota lebih ramai.</div>';
+    return;
+  }
+  for (const player of players) {
+    const row = document.createElement("div");
+    row.className = "player-row";
+    const avatar = document.createElement("div");
+    avatar.className = "player-avatar";
+    avatar.textContent = player.outfit === "formal" ? "👔" : player.outfit === "worker" ? "🧑‍🔧" : player.outfit === "sport" ? "🏃" : "🧑";
+    const info = document.createElement("div");
+    info.className = "player-info";
+    const name = document.createElement("strong");
+    name.textContent = player.displayName || "Warga";
+    const meta = document.createElement("small");
+    meta.innerHTML = (Number(player.online) === 1 ? '<span class="online-dot"></span>Online' : '<span class="offline-dot"></span>Offline') +
+      " · " + (player.currentActivity || "Santai") + " · " + Math.round(Number(player.x) || 0) + ", " + Math.round(Number(player.y) || 0);
+    info.append(name, meta);
+    if (player.bio) {
+      const bio = document.createElement("small");
+      bio.textContent = player.bio;
+      info.append(bio);
+    }
+    const actions = document.createElement("div");
+    actions.className = "player-actions";
+    const whisper = document.createElement("button");
+    whisper.className = "secondary";
+    whisper.textContent = "💬 Chat";
+    whisper.addEventListener("click", () => openWhisper(player.characterId, player.displayName || "Warga"));
+    const friend = document.createElement("button");
+    friend.className = "secondary";
+    friend.textContent = Number(player.isFriend) === 1 ? "✓ Teman" : player.friendRequest === "incoming" ? "↩ Terima" : player.friendRequest === "outgoing" ? "Terkirim" : "+ Teman";
+    friend.disabled = Number(player.isFriend) === 1 || player.friendRequest === "outgoing";
+    friend.addEventListener("click", async () => {
+      try {
+        if (player.friendRequest === "incoming") {
+          const pending = (await api("/api/social/friends")).friends.find(f => f.characterId === player.characterId && f.status === "pending" && f.direction === "incoming");
+          if (!pending) throw new Error("Permintaan pertemanan tidak ditemukan.");
+          await api("/api/social/friends/respond", {method:"POST",body:JSON.stringify({requestId:pending.requestId,accept:true})});
+        } else {
+          await api("/api/social/friends/request", {method:"POST",body:JSON.stringify({targetCharacterId:player.characterId})});
+        }
+        await refreshSocial();
+      } catch (error) {
+        $("friendsMessage").textContent = error.message;
+      }
+    });
+    actions.append(whisper, friend);
+    row.append(avatar, info, actions);
+    list.append(row);
+  }
+}
+
+function renderFriends(friends) {
+  const list = $("friendsList");
+  list.replaceChildren();
+  if (!friends.length) {
+    list.innerHTML = '<div class="empty">Belum ada teman atau permintaan pertemanan.</div>';
+    return;
+  }
+  for (const item of friends) {
+    const row = document.createElement("div");
+    row.className = "friend-row";
+    const info = document.createElement("div");
+    info.className = "player-info";
+    const name = document.createElement("strong");
+    name.textContent = item.displayName || "Warga";
+    const status = document.createElement("small");
+    status.textContent = item.status === "accepted" ? "Teman" : item.direction === "incoming" ? "Permintaan masuk" : "Permintaan terkirim";
+    info.append(name, status);
+    row.append(info);
+    if (item.status === "pending" && item.direction === "incoming") {
+      for (const accept of [true,false]) {
+        const button = document.createElement("button");
+        button.className = accept ? "" : "secondary";
+        button.textContent = accept ? "Terima" : "Tolak";
+        button.addEventListener("click", async () => {
+          try {
+            await api("/api/social/friends/respond",{method:"POST",body:JSON.stringify({requestId:item.requestId,accept})});
+            $("friendsMessage").textContent = accept ? "Pertemanan diterima." : "Permintaan ditolak.";
+            await refreshSocial();
+          } catch(error) { $("friendsMessage").textContent = error.message; }
+        });
+        row.append(button);
+      }
+    }
+    if (item.status === "accepted") {
+      const chat = document.createElement("button");
+      chat.className = "secondary";
+      chat.textContent = "Chat";
+      chat.addEventListener("click", () => openWhisper(item.characterId,item.displayName));
+      row.append(chat);
+    }
+    list.append(row);
+  }
+}
+
+async function loadChat() {
+  if (!token || !$("chatMessages")) return;
+  if (socialChannel === "whisper" && !whisperTargetId) return;
+  let endpoint = "/api/social/messages?channel=" + encodeURIComponent(socialChannel);
+  if (socialChannel === "whisper") endpoint += "&target=" + encodeURIComponent(whisperTargetId);
+  const data = await api(endpoint);
+  const box = $("chatMessages");
+  const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 45;
+  box.replaceChildren();
+  if (!(data.messages || []).length) {
+    box.innerHTML = '<div class="empty">Belum ada pesan di channel ini.</div>';
+    return;
+  }
+  for (const msg of data.messages) {
+    const line = document.createElement("div");
+    line.className = "chat-line";
+    const sender = document.createElement("strong");
+    sender.textContent = (msg.senderName || "Warga") + ": ";
+    const textNode = document.createElement("span");
+    textNode.textContent = msg.message;
+    const time = document.createElement("span");
+    time.className = "chat-time";
+    time.textContent = msg.createdAt ? new Date(msg.createdAt.replace(" ","T")+"Z").toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}) : "";
+    line.append(sender,textNode,time);
+    box.append(line);
+  }
+  if (atBottom) box.scrollTop = box.scrollHeight;
+}
+
+$("chatForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const message = $("chatInput").value.trim();
+  if (!message) return;
+  if (socialChannel === "whisper" && !whisperTargetId) {
+    setSocialStatus("Pilih pemain untuk pesan pribadi.",false);
+    return;
+  }
+  $("chatSend").disabled = true;
+  try {
+    const payload = {channel:socialChannel,message};
+    if (socialChannel === "whisper") payload.targetCharacterId = whisperTargetId;
+    await api("/api/social/messages",{method:"POST",body:JSON.stringify(payload)});
+    $("chatInput").value = "";
+    setSocialStatus("Pesan terkirim.",true);
+    await loadChat();
+  } catch(error) {
+    setSocialStatus(error.message,false);
+  } finally {
+    $("chatSend").disabled = false;
+  }
+});
 
 async function initialize() {
   try {
@@ -1405,6 +1681,14 @@ async function initialize() {
 
 setAuthMode("login");
 initialize();
+setInterval(() => {
+  if (!token || socialPollBusy) return;
+  api("/api/social/presence", {method:"POST",body:"{}"}).catch(() => {});
+  const socialPanel = $("socialTab");
+  if (socialPanel && socialPanel.classList.contains("active")) {
+    refreshSocial().catch(error => setSocialStatus(error.message, false));
+  }
+}, 12000);
 </script>
 </body>
 </html>
