@@ -1,4 +1,93 @@
 
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurelith City — Virtual World</title>
+<style>
+:root {
+  --bg:#0d111b;--panel:#171e2d;--panel2:#202a3d;
+  --border:#303b51;--text:#f3f5ff;--muted:#9ca9c0;
+  --accent:#a78bfa;--green:#68e0ac;--red:#ff8585;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer;border:0;border-radius:10px;padding:11px 15px;background:var(--accent);color:#151127;font-weight:750}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+button.danger{background:#512b3a;color:#ffdbe3}
+header{height:70px;display:flex;align-items:center;justify-content:space-between;padding:0 max(20px,calc((100% - 1250px)/2));border-bottom:1px solid var(--border);background:#121825;gap:12px}
+.logo{font-weight:900;font-size:20px;letter-spacing:1px}.logo span{color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:12px}.status{color:var(--green);font-size:12px}
+main{max-width:1250px;margin:auto;padding:28px 20px 50px}
+h1{font-size:clamp(26px,4vw,38px);margin:0 0 8px}
+h2{font-size:18px;margin:0 0 16px}
+h3{font-size:15px;margin:0 0 10px}
+p{line-height:1.55}.muted{color:var(--muted);font-size:13px}
+.panel,.stat,.auth-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;min-width:0}
+.auth-wrap{min-height:calc(100vh - 130px);display:grid;place-items:center}
+.auth-card{width:min(100%,450px);padding:28px}
+.auth-card h1{font-size:27px}
+.auth-tabs{display:flex;gap:8px;margin:20px 0}
+.auth-tabs button{flex:1}
+.field{display:grid;gap:7px;margin:13px 0}
+label{font-size:13px;color:#c5cde0}
+input,select,textarea{width:100%;background:#0f1522;color:var(--text);border:1px solid var(--border);border-radius:9px;padding:12px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:90px}
+.full{width:100%}
+.message{margin-top:13px;color:var(--red);font-size:13px;white-space:pre-wrap}
+.hidden{display:none!important}
+.welcome{margin-bottom:24px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:22px 0}
+.stat small{color:var(--muted)}.stat strong{display:block;margin-top:9px;font-size:clamp(18px,2vw,27px);overflow-wrap:anywhere}
+.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:18px;align-items:start}
+.stack{display:grid;gap:18px;min-width:0}
+.profile{display:flex;gap:14px;align-items:center}
+.avatar{width:64px;height:64px;display:grid;place-items:center;border-radius:17px;background:#322c50;font-size:34px;flex-shrink:0;border:2px solid #62578a}
+.avatar.skin-light{background:#edd2b6}.avatar.skin-medium{background:#bd8d69}.avatar.skin-dark{background:#80563e}
+.avatar.outfit-formal{border-color:#c6d3f4}.avatar.outfit-worker{border-color:#f0c66c}.avatar.outfit-sport{border-color:#72dfc0}
+.progress{height:8px;border-radius:20px;background:#303b51;overflow:hidden;margin:8px 0 16px}
+.progress div{height:100%;background:var(--green);width:100%;transition:width .2s}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}
+.tabs button{background:var(--panel2);color:var(--muted);border:1px solid var(--border)}
+.tabs button.active{background:var(--accent);color:#17122a;border-color:var(--accent)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.city-map{position:relative;min-height:330px;overflow:hidden;border-radius:13px;border:1px solid #536d69;background:
+linear-gradient(28deg,transparent 46%,#b6b18a 47%,#b6b18a 52%,transparent 53%),
+linear-gradient(152deg,transparent 46%,#b6b18a 47%,#b6b18a 52%,transparent 53%),
+linear-gradient(90deg,#2e5149,#476b58 50%,#355a50)}
+.city-map:before{content:"";position:absolute;inset:0;background-image:linear-gradient(90deg,transparent 48%,#b6b18a 49%,#b6b18a 51%,transparent 52%);opacity:.5;pointer-events:none}
+.district{position:absolute;width:115px;min-height:72px;border:2px solid #e0d0a9;border-radius:10px;background:#97745f;color:white;display:grid;place-content:center;gap:3px;text-align:center;box-shadow:0 5px 0 #4a493d;padding:8px}
+.district b{font-size:23px}.district small{font-size:10px}
+.d1{top:9%;left:8%}.d2{top:13%;right:8%;background:#655d91}
+.d3{bottom:13%;left:12%;background:#9a8754}.d4{bottom:12%;right:12%;background:#487c65}
+.map-label{position:absolute;bottom:10px;left:10px;right:10px;font-size:12px;background:#111923dd;border-radius:8px;padding:8px}
+.job-list{display:grid;gap:10px}
+.job{border:1px solid var(--border);border-radius:12px;padding:14px;background:#141b29}
+.job-head{display:flex;justify-content:space-between;gap:10px;align-items:start}
+.salary{color:var(--green);font-weight:800;white-space:nowrap}
+.job p{margin:7px 0}.job .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.list{display:grid;gap:9px}
+.transaction{display:flex;align-items:start;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border);padding:12px 0}
+.transaction:last-child{border-bottom:0}
+.transaction small{display:block;color:var(--muted);margin-top:5px;font-size:12px}
+.income{color:var(--green);font-weight:800;white-space:nowrap}
+.expense{color:var(--red);font-weight:800;white-space:nowrap}
+.empty{color:var(--muted);font-size:13px;padding:16px 0}
+.row-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+.feed{display:grid;gap:0}
+.event{font-size:13px;color:#c5cde0;padding:11px 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+footer{text-align:center;color:#78849d;font-size:12px;padding:24px}
+.notice{padding:12px;border-radius:10px;background:#202a3d;color:#cbd5ed;font-size:13px;margin:12px 0}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}header{padding:0 15px}.panel{padding:16px}}
+@media(max-width:420px){main{padding:20px 12px}.stats{gap:8px}.stat{padding:13px}.district{width:92px;min-height:65px}.header-right .status{display:none}.logo{font-size:17px}}
+
+
+/* Perbaikan tampilan klasik Aurelith City */
+
 /* =========================================
    AURELITH CITY — CLASSIC MMORPG UI
    Torn-inspired visual redesign
@@ -380,3 +469,592 @@ footer {
     min-height: 300px;
   }
 }
+
+
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">✦ AURELITH<span> CITY</span></div>
+  <div class="header-right">
+    <span class="status" id="serverStatus">● Menghubungkan...</span>
+    <button id="logoutButton" class="secondary hidden" onclick="logout()">Keluar</button>
+  </div>
+</header>
+
+<main>
+  <section id="authView" class="auth-wrap">
+    <div class="auth-card">
+      <div class="logo">✦ AURELITH<span> CITY</span></div>
+      <h1 id="authTitle" style="margin-top:24px">Masuk ke kota</h1>
+      <p class="muted">Bangun kehidupanmu sendiri di dunia virtual Aurelith.</p>
+      <div class="auth-tabs">
+        <button id="loginTab" onclick="setAuthMode('login')">Masuk</button>
+        <button id="registerTab" class="secondary" onclick="setAuthMode('register')">Daftar warga</button>
+      </div>
+      <form id="authForm">
+        <div id="registerFields" class="hidden">
+          <div class="field"><label for="regUsername">Username</label><input id="regUsername" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" autocomplete="username" placeholder="contoh: warga_aurelith"></div>
+          <div class="field"><label for="regEmail">Email</label><input id="regEmail" type="email" maxlength="254" autocomplete="email" placeholder="nama@email.com"></div>
+          <div class="field"><label for="regDisplayName">Nama karakter</label><input id="regDisplayName" maxlength="30" placeholder="Nama warga kamu"></div>
+        </div>
+        <div id="loginFields">
+          <div class="field"><label for="identifier">Username atau email</label><input id="identifier" autocomplete="username" placeholder="Username atau email"></div>
+        </div>
+        <div class="field"><label for="password">Password</label><input id="password" type="password" minlength="8" maxlength="128" autocomplete="current-password" required placeholder="Minimal 8 karakter"></div>
+        <button class="full" id="authSubmit" type="submit">Masuk ke Aurelith</button>
+        <div id="authMessage" class="message" role="status"></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="cityView" class="hidden">
+    <div class="welcome">
+      <h1>Selamat datang di Aurelith.</h1>
+      <p class="muted">Kota virtual tempat kehidupan, pekerjaan, dan pilihanmu berkembang.</p>
+    </div>
+
+    <section class="stats">
+      <div class="stat"><small>Saldo karakter</small><strong id="statBalance">0</strong></div>
+      <div class="stat"><small>Energi</small><strong id="statEnergy">0 / 100</strong></div>
+      <div class="stat"><small>Suasana hati</small><strong id="statMood">0 / 100</strong></div>
+      <div class="stat"><small>Daftar pekerjaan</small><strong id="statJobs">0</strong></div>
+    </section>
+
+    <div class="tabs">
+      <button class="active" data-tab="cityTab" onclick="showTab('cityTab',this)">🗺️ Kota</button>
+      <button data-tab="jobsTab" onclick="showTab('jobsTab',this)">💼 Pekerjaan</button>
+      <button data-tab="walletTab" onclick="showTab('walletTab',this)">💰 Dompet</button>
+      <button data-tab="settingsTab" onclick="showTab('settingsTab',this)">👤 Karakter</button>
+    </div>
+
+    <section id="cityTab" class="tab-panel active">
+      <div class="layout">
+        <div class="stack">
+          <div class="panel">
+            <h2>🗺️ Jelajahi Aurelith</h2>
+            <p class="muted">Pilih distrik untuk memperbarui lokasi karaktermu.</p>
+            <div class="city-map">
+              <button class="district d1" onclick="visit('Pusat Kota',600,400)"><b>🏛️</b><small>PUSAT KOTA</small></button>
+              <button class="district d2" onclick="visit('Distrik Bisnis',900,230)"><b>🏢</b><small>DISTRIK BISNIS</small></button>
+              <button class="district d3" onclick="visit('Pasar',300,570)"><b>🏪</b><small>PASAR</small></button>
+              <button class="district d4" onclick="visit('Taman Kota',920,580)"><b>🌳</b><small>TAMAN KOTA</small></button>
+              <div id="mapLocation" class="map-label">📍 Alun-Alun Aurelith</div>
+            </div>
+            <p class="muted">Posisi karakter disimpan ke server saat kamu memilih distrik.</p>
+          </div>
+          <div class="panel">
+            <h2>🌐 Aktivitasmu</h2>
+            <div id="feed" class="feed"><div class="event">Kota siap menyambutmu.</div></div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="panel">
+            <h2>👤 Profil Warga</h2>
+            <div class="profile">
+              <div id="avatar" class="avatar skin-medium outfit-casual">🧑</div>
+              <div>
+                <strong id="characterName">Warga Aurelith</strong>
+                <div id="usernameLabel" class="muted">Penduduk Aurelith</div>
+              </div>
+            </div>
+            <p id="characterBio" class="muted">Belum ada bio karakter.</p>
+            <p class="muted">Energi</p><div class="progress"><div id="energyBar"></div></div>
+            <p class="muted">Suasana hati</p><div class="progress"><div id="moodBar"></div></div>
+            <div class="row-actions">
+              <button onclick="showTab('jobsTab')">💼 Cari pekerjaan</button>
+              <button class="secondary" onclick="showTab('walletTab')">💰 Buka dompet</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>📌 Ringkasan</h2>
+            <p>Saldo: <strong id="sideBalance">0</strong></p>
+            <p>Aktivitas: <strong id="currentActivity">Santai</strong></p>
+            <button class="secondary full" onclick="refreshAll()">↻ Segarkan data</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="jobsTab" class="tab-panel">
+      <div class="panel">
+        <h2>💼 Pekerjaan di Aurelith</h2>
+        <p class="muted">Pilih pekerjaan untuk menerima gaji virtual. Setelah bekerja, ada batas 60 menit sebelum bisa bekerja lagi.</p>
+        <div id="jobsList" class="job-list"><div class="empty">Memuat pekerjaan...</div></div>
+        <div id="jobsMessage" class="message" role="status"></div>
+      </div>
+    </section>
+
+    <section id="walletTab" class="tab-panel">
+      <div class="layout">
+        <div class="stack">
+          <div class="panel">
+            <h2>💰 Dompet warga</h2>
+            <p class="muted">Saldo uang virtual yang tersimpan di database.</p>
+            <div style="font-size:clamp(26px,5vw,38px);font-weight:850" id="walletBalance">0</div>
+            <button style="margin-top:15px" onclick="loadWallet()">↻ Perbarui dompet</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>📜 Riwayat transaksi</h2>
+          <div id="transactions" class="list"><div class="empty">Memuat transaksi...</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="settingsTab" class="tab-panel">
+      <div class="layout">
+        <div class="panel">
+          <h2>👤 Pengaturan karakter</h2>
+          <p class="muted">Atur identitas dan penampilan karakter. Perubahan disimpan ke database.</p>
+          <form id="settingsForm">
+            <div class="field">
+              <label for="bioInput">Bio karakter (maksimal 240 karakter)</label>
+              <textarea id="bioInput" maxlength="240" placeholder="Ceritakan sedikit tentang karaktermu..."></textarea>
+            </div>
+            <div class="field">
+              <label for="skinInput">Warna kulit</label>
+              <select id="skinInput">
+                <option value="light">Terang</option>
+                <option value="medium">Sedang</option>
+                <option value="dark">Gelap</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="outfitInput">Pakaian</label>
+              <select id="outfitInput">
+                <option value="casual">Kasual</option>
+                <option value="formal">Formal</option>
+                <option value="worker">Pekerja</option>
+                <option value="sport">Olahraga</option>
+              </select>
+            </div>
+            <button type="submit" id="saveSettingsButton">Simpan pengaturan</button>
+            <div id="settingsMessage" class="message" role="status"></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>Pratinjau karakter</h2>
+          <div style="display:grid;place-items:center;padding:30px 0">
+            <div id="previewAvatar" class="avatar skin-medium outfit-casual" style="width:110px;height:110px;font-size:55px;border-radius:28px">🧑</div>
+          </div>
+          <div id="previewName" style="text-align:center;font-weight:800">Warga Aurelith</div>
+          <p id="previewBio" class="muted" style="text-align:center">Belum ada bio karakter.</p>
+          <div class="notice">Pilihan penampilan saat ini mengubah tampilan avatar pada panel profil. Ini belum mengubah sprite peta menjadi karakter animasi penuh.</div>
+        </div>
+      </div>
+    </section>
+  </section>
+</main>
+
+<footer>AURELITH CITY · A WORLD THAT NEVER STOPS</footer>
+
+<script>
+"use strict";
+
+const API = "";
+let token = localStorage.getItem("aurelith_token") || "";
+let currentUser = null;
+let character = null;
+let jobs = [];
+let settings = { bio:"", skinTone:"medium", outfit:"casual" };
+let authMode = "login";
+
+const $ = id => document.getElementById(id);
+
+function money(value) {
+  return new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits: 0
+  }).format(Number(value) || 0) + " Aurelith";
+}
+
+function addEvent(message) {
+  const feed = $("feed");
+  const item = document.createElement("div");
+  item.className = "event";
+  item.textContent = new Date().toLocaleTimeString("id-ID", {
+    hour:"2-digit", minute:"2-digit"
+  }) + " · " + message;
+  feed.prepend(item);
+  while (feed.children.length > 12) feed.lastElementChild.remove();
+}
+
+async function api(path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  if (token) headers.Authorization = "Bearer " + token;
+
+  const response = await fetch(API + path, {
+    ...options,
+    headers,
+    cache: "no-store"
+  });
+
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("Server mengirim respons yang tidak bisa dibaca.");
+  }
+
+  if (!response.ok) throw new Error(data.error || "Permintaan gagal.");
+  return data;
+}
+
+function setStatus(text, good = true) {
+  $("serverStatus").textContent = (good ? "● " : "● ") + text;
+  $("serverStatus").style.color = good ? "var(--green)" : "var(--red)";
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const registering = mode === "register";
+  $("authTitle").textContent = registering ? "Bergabung dengan kota" : "Masuk ke kota";
+  $("registerFields").classList.toggle("hidden", !registering);
+  $("loginFields").classList.toggle("hidden", registering);
+  $("loginTab").classList.toggle("secondary", registering);
+  $("registerTab").classList.toggle("secondary", !registering);
+  $("authSubmit").textContent = registering ? "Buat akun warga" : "Masuk ke Aurelith";
+  $("authMessage").textContent = "";
+  $("password").autocomplete = registering ? "new-password" : "current-password";
+}
+
+$("authForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  $("authSubmit").disabled = true;
+  $("authMessage").textContent = "";
+
+  try {
+    let payload;
+    let path;
+
+    if (authMode === "register") {
+      payload = {
+        username: $("regUsername").value.trim(),
+        email: $("regEmail").value.trim(),
+        displayName: $("regDisplayName").value.trim() || $("regUsername").value.trim(),
+        password: $("password").value
+      };
+      path = "/api/register";
+    } else {
+      payload = {
+        identifier: $("identifier").value.trim(),
+        password: $("password").value
+      };
+      path = "/api/login";
+    }
+
+    const result = await api(path, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+
+    token = result.token;
+    localStorage.setItem("aurelith_token", token);
+    currentUser = result.user;
+    character = result.character;
+    await enterCity();
+  } catch (error) {
+    $("authMessage").textContent = error.message;
+  } finally {
+    $("authSubmit").disabled = false;
+  }
+});
+
+async function enterCity() {
+  $("authView").classList.add("hidden");
+  $("cityView").classList.remove("hidden");
+  $("logoutButton").classList.remove("hidden");
+  setStatus("Backend aktif");
+
+  try {
+    const me = await api("/api/me");
+    currentUser = me.user;
+    character = me.character;
+    await refreshAll();
+    addEvent("Kamu masuk ke Aurelith City.");
+  } catch (error) {
+    if (error.message.toLowerCase().includes("sesi")) {
+      await logout(false);
+      $("authMessage").textContent = "Sesi berakhir. Silakan masuk kembali.";
+    } else {
+      addEvent("Sebagian data gagal dimuat: " + error.message);
+    }
+  }
+}
+
+async function logout(callServer = true) {
+  if (callServer && token) {
+    try {
+      await api("/api/logout", { method:"POST", body:"{}" });
+    } catch {}
+  }
+
+  token = "";
+  localStorage.removeItem("aurelith_token");
+  currentUser = null;
+  character = null;
+  $("cityView").classList.add("hidden");
+  $("authView").classList.remove("hidden");
+  $("logoutButton").classList.add("hidden");
+  setStatus("Backend aktif");
+}
+
+function updateCharacterUI() {
+  if (!character) return;
+
+  $("characterName").textContent = character.displayName || "Warga Aurelith";
+  $("usernameLabel").textContent = currentUser
+    ? "@" + currentUser.username + " · Penduduk Aurelith"
+    : "Penduduk Aurelith";
+
+  $("statBalance").textContent = money(character.money);
+  $("sideBalance").textContent = money(character.money);
+  $("walletBalance").textContent = money(character.money);
+  $("statEnergy").textContent = (character.energy ?? 0) + " / 100";
+  $("statMood").textContent = (character.mood ?? 0) + " / 100";
+  $("energyBar").style.width = Math.max(0, Math.min(100, Number(character.energy) || 0)) + "%";
+  $("moodBar").style.width = Math.max(0, Math.min(100, Number(character.mood) || 0)) + "%";
+  $("currentActivity").textContent = character.currentActivity || "Santai";
+
+  $("characterBio").textContent = settings.bio || "Belum ada bio karakter.";
+  $("previewBio").textContent = settings.bio || "Belum ada bio karakter.";
+  $("previewName").textContent = character.displayName || "Warga Aurelith";
+
+  const avatarClass = "avatar skin-" + settings.skinTone + " outfit-" + settings.outfit;
+  $("avatar").className = avatarClass;
+  $("previewAvatar").className = avatarClass;
+}
+
+async function loadJobs() {
+  const data = await api("/api/jobs");
+  jobs = data.jobs || [];
+  $("statJobs").textContent = String(jobs.length);
+
+  const list = $("jobsList");
+  list.replaceChildren();
+
+  if (!jobs.length) {
+    list.innerHTML = '<div class="empty">Belum ada pekerjaan di database.</div>';
+    return;
+  }
+
+  for (const job of jobs) {
+    const card = document.createElement("article");
+    card.className = "job";
+
+    const head = document.createElement("div");
+    head.className = "job-head";
+
+    const title = document.createElement("strong");
+    title.textContent = job.name;
+
+    const salary = document.createElement("span");
+    salary.className = "salary";
+    salary.textContent = "+" + money(job.salary);
+
+    head.append(title, salary);
+
+    const detail = document.createElement("p");
+    detail.className = "muted";
+    detail.textContent =
+      "Durasi: " + (job.duration_minutes ?? "—") + " menit · Lokasi: " +
+      (job.location || "Belum ditentukan");
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+
+    const workButton = document.createElement("button");
+    workButton.textContent = "Ambil pekerjaan";
+    workButton.addEventListener("click", () => work(job.id, workButton));
+
+    actions.append(workButton);
+    card.append(head, detail, actions);
+    list.append(card);
+  }
+}
+
+async function work(jobId, button) {
+  button.disabled = true;
+  $("jobsMessage").textContent = "";
+
+  try {
+    const result = await api("/api/work", {
+      method:"POST",
+      body:JSON.stringify({ jobId })
+    });
+
+    character = result.character;
+    updateCharacterUI();
+    await loadWallet();
+    addEvent(result.message || "Pekerjaan selesai.");
+    $("jobsMessage").style.color = "var(--green)";
+    $("jobsMessage").textContent = result.message || "Pekerjaan selesai.";
+  } catch (error) {
+    $("jobsMessage").style.color = "var(--red)";
+    $("jobsMessage").textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function loadWallet() {
+  const data = await api("/api/wallet");
+  $("walletBalance").textContent = money(data.balance);
+  if (character) {
+    character.money = data.balance;
+    updateCharacterUI();
+  }
+
+  const list = $("transactions");
+  list.replaceChildren();
+
+  if (!data.transactions || !data.transactions.length) {
+    list.innerHTML = '<div class="empty">Belum ada transaksi. Cobalah bekerja untuk mendapatkan gaji pertama.</div>';
+    return;
+  }
+
+  for (const tx of data.transactions) {
+    const row = document.createElement("div");
+    row.className = "transaction";
+
+    const info = document.createElement("div");
+    const description = document.createElement("strong");
+    description.textContent = tx.description || "Transaksi";
+    const date = document.createElement("small");
+    date.textContent = tx.created_at || "";
+    info.append(description, date);
+
+    const amount = document.createElement("span");
+    const isIncome = tx.transaction_type === "income";
+    amount.className = isIncome ? "income" : "expense";
+    amount.textContent = (isIncome ? "+" : "−") + money(tx.amount);
+
+    row.append(info, amount);
+    list.append(row);
+  }
+}
+
+async function loadSettings() {
+  const data = await api("/api/character-settings");
+  settings = data.settings || settings;
+
+  $("bioInput").value = settings.bio || "";
+  $("skinInput").value = settings.skinTone || "medium";
+  $("outfitInput").value = settings.outfit || "casual";
+  updateCharacterUI();
+}
+
+$("settingsForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  $("saveSettingsButton").disabled = true;
+  $("settingsMessage").textContent = "";
+
+  try {
+    const payload = {
+      bio: $("bioInput").value,
+      skinTone: $("skinInput").value,
+      outfit: $("outfitInput").value
+    };
+
+    const result = await api("/api/character-settings", {
+      method:"POST",
+      body:JSON.stringify(payload)
+    });
+
+    settings = result.settings;
+    updateCharacterUI();
+    $("settingsMessage").style.color = "var(--green)";
+    $("settingsMessage").textContent = result.message || "Pengaturan tersimpan.";
+    addEvent("Pengaturan karakter diperbarui.");
+  } catch (error) {
+    $("settingsMessage").style.color = "var(--red)";
+    $("settingsMessage").textContent = error.message;
+  } finally {
+    $("saveSettingsButton").disabled = false;
+  }
+});
+
+async function visit(place, x, y) {
+  try {
+    await api("/api/move", {
+      method:"POST",
+      body:JSON.stringify({x,y})
+    });
+
+    $("mapLocation").textContent = "📍 Lokasi: " + place;
+    addEvent("Kamu berpindah ke " + place + ".");
+  } catch (error) {
+    addEvent("Gagal memperbarui lokasi: " + error.message);
+  }
+}
+
+function showTab(tabId, button) {
+  document.querySelectorAll(".tab-panel").forEach(panel => {
+    panel.classList.toggle("active", panel.id === tabId);
+  });
+
+  document.querySelectorAll(".tabs button").forEach(tab => {
+    tab.classList.toggle("active", tab.dataset.tab === tabId);
+  });
+
+  if (button && button.dataset.tab) {
+    button.classList.add("active");
+  }
+
+  if (tabId === "walletTab") loadWallet().catch(e => addEvent(e.message));
+  if (tabId === "jobsTab" && !jobs.length) loadJobs().catch(e => addEvent(e.message));
+  if (tabId === "settingsTab") loadSettings().catch(e => addEvent(e.message));
+}
+
+async function refreshAll() {
+  const me = await api("/api/me");
+  currentUser = me.user;
+  character = me.character;
+  updateCharacterUI();
+
+  const results = await Promise.allSettled([
+    loadJobs(),
+    loadWallet(),
+    loadSettings()
+  ]);
+
+  for (const result of results) {
+    if (result.status === "rejected") {
+      addEvent("Gagal memuat sebagian data: " + result.reason.message);
+    }
+  }
+}
+
+async function initialize() {
+  try {
+    const response = await fetch("/api/health", { cache:"no-store" });
+    const health = await response.json();
+
+    if (health.backend === "online" && health.databaseBinding) {
+      setStatus("Backend & D1 aktif");
+    } else {
+      setStatus("Periksa koneksi database", false);
+    }
+  } catch {
+    setStatus("Backend tidak terjangkau", false);
+  }
+
+  if (token) {
+    $("authView").classList.add("hidden");
+    $("cityView").classList.remove("hidden");
+    $("logoutButton").classList.remove("hidden");
+
+    try {
+      await enterCity();
+    } catch (error) {
+      addEvent("Gagal memuat kota: " + error.message);
+    }
+  }
+}
+
+setAuthMode("login");
+initialize();
+</script>
+</body>
+</html>
