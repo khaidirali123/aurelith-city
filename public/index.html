@@ -1518,8 +1518,10 @@ function renderPlayers(players) {
     const name = document.createElement("strong");
     name.textContent = player.displayName || "Warga";
     const meta = document.createElement("small");
-    meta.innerHTML = (Number(player.online) === 1 ? '<span class="online-dot"></span>Online' : '<span class="offline-dot"></span>Offline') +
-      " · " + (player.currentActivity || "Santai") + " · " + Math.round(Number(player.x) || 0) + ", " + Math.round(Number(player.y) || 0);
+    const dot = document.createElement("span");
+    dot.className = Number(player.online) === 1 ? "online-dot" : "offline-dot";
+    meta.append(dot, document.createTextNode((Number(player.online) === 1 ? "Online" : "Offline") +
+      " · " + String(player.currentActivity || "Santai") + " · " + Math.round(Number(player.x) || 0) + ", " + Math.round(Number(player.y) || 0)));
     info.append(name, meta);
     if (player.bio) {
       const bio = document.createElement("small");
