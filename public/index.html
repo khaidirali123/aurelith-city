@@ -499,6 +499,12 @@ footer {
 .activity-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;background:#10232c;border:1px solid #365260;color:#bde7f6;border-radius:3px;font-size:11px}
 @media(max-width:600px){.city-map{min-height:390px}.district{width:86px;min-height:60px;padding:5px}.district b{font-size:19px}.district small{font-size:8px}.d5{left:37%}.d6{left:39%}.d7{left:39%}.d8{right:3%}.job-tools{grid-template-columns:1fr}.gameplay-shortcuts{grid-template-columns:1fr}.dashboard-ribbon{align-items:flex-start}}
 
+
+.game-action-result{padding:12px;border:1px solid var(--border);background:#14232d;margin:8px 0;border-radius:4px}
+.wanted-stars{color:#ffb56e;letter-spacing:3px}
+.game-activity-row{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px}
+.game-activity-row:last-child{border-bottom:0}
+@media(max-width:800px){#gameTab .stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -558,6 +564,7 @@ footer {
       <button class="active" data-tab="cityTab" onclick="showTab('cityTab',this)">🗺️ Kota</button>
       <button data-tab="jobsTab" onclick="showTab('jobsTab',this)">💼 Pekerjaan</button>
       <button data-tab="walletTab" onclick="showTab('walletTab',this)">💰 Dompet</button>
+      <button data-tab="gameTab" onclick="showTab('gameTab',this)">🎮 Aktivitas & kriminalitas</button>
       <button data-tab="settingsTab" onclick="showTab('settingsTab',this)">👤 Karakter</button>
     </div>
 
@@ -654,6 +661,51 @@ footer {
       </div>
     </section>
 
+    <section id="gameTab" class="tab-panel">
+      <div class="layout">
+        <div class="stack">
+          <div class="panel">
+            <h2>⏳ Aktivitas berkelanjutan</h2>
+            <p class="muted">Aktivitas dicatat di server. Kamu boleh keluar; saat kembali, server memeriksa apakah waktunya sudah selesai.</p>
+            <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+              <div class="stat"><small>Kesehatan</small><strong id="gameHealth">100 / 100</strong></div>
+              <div class="stat"><small>Tingkat buronan</small><strong id="wantedLevel">0 / 5</strong></div>
+            </div>
+            <div class="notice" id="gameActivityStatus">Memuat status aktivitas...</div>
+            <div class="field"><label for="activityHours">Durasi aktivitas</label>
+              <select id="activityHours"><option value="1">1 jam</option><option value="2">2 jam</option><option value="4">4 jam</option><option value="8">8 jam</option></select>
+            </div>
+            <div class="row-actions">
+              <button onclick="startGameActivity('rest')">🛌 Mulai istirahat</button>
+              <button onclick="startGameActivity('side_job')">🧰 Kerja sampingan</button>
+            </div>
+            <div id="gameMessage" class="message" role="status"></div>
+          </div>
+          <div class="panel">
+            <h2>🎒 Inventaris</h2>
+            <p class="muted">Ruang inventaris sudah disiapkan untuk item yang bisa dikumpulkan di pengembangan berikutnya.</p>
+            <div id="inventoryList" class="list"><div class="empty">Memuat inventaris...</div></div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="panel">
+            <h2>🚨 Sistem kriminalitas</h2>
+            <p class="muted">Aksi berisiko dapat menghasilkan uang, tetapi kegagalan menyebabkan denda. Aksi menguras energi dan menaikkan tingkat buronan.</p>
+            <div class="job-list">
+              <article class="job"><div class="job-head"><strong>👜 Mencopet</strong><span class="salary">80–220</span></div><p class="muted">Risiko relatif rendah; peluang berhasil 58%.</p><button onclick="attemptCrime('pickpocket')">Coba mencopet</button></article>
+              <article class="job"><div class="job-head"><strong>🏪 Mencuri dari toko</strong><span class="salary">140–360</span></div><p class="muted">Peluang berhasil 48%; hukuman lebih besar jika gagal.</p><button onclick="attemptCrime('shoplift')">Coba mencuri</button></article>
+              <article class="job"><div class="job-head"><strong>🏦 Perampokan berisiko</strong><span class="salary">350–800</span></div><p class="muted">Peluang berhasil 30%; berisiko tinggi dan meningkatkan buronan.</p><button class="danger" onclick="attemptCrime('heist')">Mulai perampokan</button></article>
+            </div>
+            <button class="secondary full" style="margin-top:12px" onclick="layLow()">🕶️ Bersembunyi untuk menurunkan buronan</button>
+          </div>
+          <div class="panel">
+            <h2>📜 Aktivitas terbaru</h2>
+            <div id="gameActivityLog" class="feed"><div class="empty">Memuat riwayat aktivitas...</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="settingsTab" class="tab-panel">
       <div class="layout">
         <div class="panel">
@@ -711,6 +763,7 @@ let character = null;
 let jobs = [];
 let jobSearchTerm = "";
 let jobSortMode = "salary-asc";
+let gameState = null;
 let settings = { bio:"", skinTone:"medium", outfit:"casual" };
 let authMode = "login";
 
@@ -1051,6 +1104,124 @@ $("settingsForm").addEventListener("submit", async event => {
   }
 });
 
+function showGameMessage(message, good = true) {
+  const el = $("gameMessage");
+  if (!el) return;
+  el.style.color = good ? "var(--green)" : "var(--red)";
+  el.textContent = message || "";
+}
+
+async function loadGameState() {
+  const data = await api("/api/game/state");
+  gameState = data.state || {};
+  if (data.character && character) {
+    character.money = data.character.money;
+    character.energy = data.character.energy;
+    character.mood = data.character.mood;
+    character.currentActivity = data.character.current_activity;
+    updateCharacterUI();
+  }
+  $("gameHealth").textContent = (gameState.health ?? 100) + " / 100";
+  $("wantedLevel").innerHTML = '<span class="wanted-stars">' + "★".repeat(Number(gameState.wantedLevel || 0)) + "☆".repeat(5 - Number(gameState.wantedLevel || 0)) + '</span> ' + (gameState.wantedLevel || 0) + " / 5";
+  const active = gameState.activityType;
+  if (active && gameState.activityEndsAt) {
+    const end = new Date(gameState.activityEndsAt.replace(" ", "T") + "Z");
+    const remaining = Math.max(0, end.getTime() - Date.now());
+    const hours = Math.floor(remaining / 3600000);
+    const minutes = Math.floor((remaining % 3600000) / 60000);
+    $("gameActivityStatus").textContent = (active === "rest" ? "🛌 Sedang istirahat" : "🧰 Sedang kerja sampingan") + " · tersisa sekitar " + hours + " jam " + minutes + " menit.";
+  } else {
+    $("gameActivityStatus").textContent = data.settledActivity?.message || "Tidak ada aktivitas berjalan. Pilih aktivitas dan durasi.";
+  }
+
+  const inv = $("inventoryList");
+  inv.replaceChildren();
+  if (!data.inventory?.length) {
+    inv.innerHTML = '<div class="empty">Inventaris masih kosong. Item akan ditambahkan saat sistem barang diaktifkan.</div>';
+  } else {
+    for (const item of data.inventory) {
+      const row = document.createElement("div");
+      row.className = "transaction";
+      const label = document.createElement("strong");
+      label.textContent = item.item_name;
+      const qty = document.createElement("span");
+      qty.className = "activity-chip";
+      qty.textContent = "× " + item.quantity;
+      row.append(label, qty); inv.append(row);
+    }
+  }
+  const log = $("gameActivityLog");
+  log.replaceChildren();
+  if (!data.activities?.length) {
+    log.innerHTML = '<div class="empty">Belum ada aktivitas. Mulai dari istirahat atau coba aksi kriminal.</div>';
+  } else {
+    for (const item of data.activities) {
+      const row = document.createElement("div");
+      row.className = "game-activity-row";
+      const title = document.createElement("strong");
+      title.textContent = (item.activity_type || "aktivitas").replaceAll("_", " ");
+      const detail = document.createElement("div");
+      detail.className = "muted";
+      detail.textContent = (item.details || "") + (item.status ? " · " + item.status : "") + (item.started_at ? " · " + item.started_at : "");
+      row.append(title, detail); log.append(row);
+    }
+  }
+  if (data.settledActivity) {
+    showGameMessage(data.settledActivity.message, true);
+    await loadWallet();
+    addEvent(data.settledActivity.message);
+  }
+}
+
+async function startGameActivity(activityType) {
+  showGameMessage("");
+  try {
+    const hours = Number($("activityHours").value);
+    const result = await api("/api/game/activity/start", { method:"POST", body:JSON.stringify({activityType, hours}) });
+    showGameMessage(result.message, true);
+    addEvent(result.message);
+    await loadGameState();
+  } catch (error) {
+    showGameMessage(error.message, false);
+  }
+}
+
+async function attemptCrime(crimeType) {
+  const labels = {pickpocket:"mencopet", shoplift:"mencuri dari toko", heist:"melakukan perampokan berisiko"};
+  if (!confirm("Kamu yakin ingin " + labels[crimeType] + "? Aksi ini bisa gagal, mengurangi energi, dan menaikkan buronan.")) return;
+  showGameMessage("");
+  try {
+    const result = await api("/api/game/crime", {method:"POST", body:JSON.stringify({crimeType})});
+    if (result.character && character) {
+      character.money = result.character.money;
+      character.energy = result.character.energy;
+      character.mood = result.character.mood;
+      character.currentActivity = result.character.current_activity;
+      updateCharacterUI();
+    }
+    showGameMessage(result.message, result.outcome === "success");
+    addEvent(result.message);
+    await Promise.all([loadWallet(), loadGameState()]);
+  } catch (error) {
+    showGameMessage(error.message, false);
+  }
+}
+
+async function layLow() {
+  showGameMessage("");
+  try {
+    const result = await api("/api/game/lay-low", {method:"POST", body:"{}"});
+    showGameMessage(result.message, true);
+    addEvent(result.message);
+    await loadGameState();
+    const me = await api("/api/me");
+    character = me.character;
+    updateCharacterUI();
+  } catch (error) {
+    showGameMessage(error.message, false);
+  }
+}
+
 function updateMapCharacter() {
   const marker = $("mapCharacter");
   if (!marker || !character) return;
@@ -1106,6 +1277,7 @@ function showTab(tabId, button) {
   if (tabId === "walletTab") loadWallet().catch(e => addEvent(e.message));
   if (tabId === "jobsTab" && !jobs.length) loadJobs().catch(e => addEvent(e.message));
   if (tabId === "settingsTab") loadSettings().catch(e => addEvent(e.message));
+  if (tabId === "gameTab") loadGameState().catch(e => showGameMessage(e.message, false));
 }
 
 async function refreshAll() {
@@ -1117,7 +1289,8 @@ async function refreshAll() {
   const results = await Promise.allSettled([
     loadJobs(),
     loadWallet(),
-    loadSettings()
+    loadSettings(),
+    loadGameState()
   ]);
 
   for (const result of results) {
