@@ -951,6 +951,209 @@ async function handleApi(request, env) {
     return json({ error: "Endpoint gameplay tidak ditemukan." }, 404);
   }
 
+
+  // MULTIPLAYER SOCIAL: presence, player discovery, chat, and friend requests.
+  if (path.startsWith("/api/social/")) {
+    const session = await getSession(request, db);
+    if (!session) return json({ error: "Sesi berakhir. Silakan login kembali." }, 401);
+
+    await db.batch([
+      db.prepare(`CREATE TABLE IF NOT EXISTS player_presence (
+        character_id TEXT PRIMARY KEY,
+        x REAL NOT NULL DEFAULT 600,
+        y REAL NOT NULL DEFAULT 400,
+        last_seen TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
+      )`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS social_messages (
+        id TEXT PRIMARY KEY,
+        sender_character_id TEXT NOT NULL,
+        recipient_character_id TEXT,
+        channel TEXT NOT NULL CHECK(channel IN ('global','local','whisper')),
+        message TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(sender_character_id) REFERENCES characters(id) ON DELETE CASCADE,
+        FOREIGN KEY(recipient_character_id) REFERENCES characters(id) ON DELETE CASCADE
+      )`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS player_friendships (
+        id TEXT PRIMARY KEY,
+        requester_character_id TEXT NOT NULL,
+        addressee_character_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','declined')),
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(requester_character_id, addressee_character_id),
+        CHECK(requester_character_id <> addressee_character_id),
+        FOREIGN KEY(requester_character_id) REFERENCES characters(id) ON DELETE CASCADE,
+        FOREIGN KEY(addressee_character_id) REFERENCES characters(id) ON DELETE CASCADE
+      )`),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_social_messages_created ON social_messages(channel, created_at)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_social_presence_seen ON player_presence(last_seen)")
+    ]);
+
+    await db.prepare(`
+      INSERT INTO player_presence (character_id, x, y, last_seen)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(character_id) DO UPDATE SET
+        x = excluded.x, y = excluded.y, last_seen = CURRENT_TIMESTAMP
+    `).bind(session.character_id, session.x, session.y).run();
+
+    if (path === "/api/social/presence" && method === "POST") {
+      return json({ success: true, lastSeen: new Date().toISOString() });
+    }
+
+    if (path === "/api/social/players" && method === "GET") {
+      const result = await db.prepare(`
+        SELECT c.id AS characterId, c.display_name AS displayName,
+          c.x, c.y, c.current_activity AS currentActivity,
+          cs.bio, cs.outfit,
+          CASE WHEN p.last_seen >= datetime('now', '-2 minutes') THEN 1 ELSE 0 END AS online,
+          p.last_seen AS lastSeen,
+          CASE WHEN f1.status = 'accepted' OR f2.status = 'accepted' THEN 1 ELSE 0 END AS isFriend,
+          CASE WHEN f1.status = 'pending' AND f1.addressee_character_id = ? THEN 'incoming'
+               WHEN f2.status = 'pending' AND f2.requester_character_id = ? THEN 'outgoing'
+               ELSE NULL END AS friendRequest
+        FROM characters c
+        LEFT JOIN player_presence p ON p.character_id = c.id
+        LEFT JOIN character_settings cs ON cs.character_id = c.id
+        LEFT JOIN player_friendships f1 ON f1.requester_character_id = c.id AND f1.addressee_character_id = ?
+        LEFT JOIN player_friendships f2 ON f2.requester_character_id = ? AND f2.addressee_character_id = c.id
+        WHERE c.id <> ?
+        ORDER BY online DESC, c.display_name COLLATE NOCASE ASC
+        LIMIT 80
+      `).bind(session.character_id, session.character_id, session.character_id, session.character_id, session.character_id).all();
+      return json({ success: true, players: result.results || [] });
+    }
+
+    if (path === "/api/social/messages" && method === "GET") {
+      const channel = String(url.searchParams.get("channel") || "global");
+      const before = String(url.searchParams.get("before") || "");
+      if (!["global","local","whisper"].includes(channel)) return json({ error: "Channel chat tidak valid." }, 400);
+      let query, args;
+      if (channel === "whisper") {
+        const target = String(url.searchParams.get("target") || "");
+        if (!target) return json({ error: "Pilih pemain untuk pesan pribadi." }, 400);
+        query = `
+          SELECT m.id, m.channel, m.message, m.created_at AS createdAt,
+            m.sender_character_id AS senderCharacterId,
+            sender.display_name AS senderName,
+            m.recipient_character_id AS recipientCharacterId,
+            recipient.display_name AS recipientName
+          FROM social_messages m
+          JOIN characters sender ON sender.id = m.sender_character_id
+          JOIN characters recipient ON recipient.id = m.recipient_character_id
+          WHERE m.channel = 'whisper'
+            AND ((m.sender_character_id = ? AND m.recipient_character_id = ?)
+              OR (m.sender_character_id = ? AND m.recipient_character_id = ?))
+            AND (? = '' OR m.created_at < ?)
+          ORDER BY m.created_at DESC LIMIT 50
+        `;
+        args = [session.character_id, target, target, session.character_id, before, before];
+      } else {
+        query = `
+          SELECT m.id, m.channel, m.message, m.created_at AS createdAt,
+            m.sender_character_id AS senderCharacterId,
+            c.display_name AS senderName
+          FROM social_messages m JOIN characters c ON c.id = m.sender_character_id
+          WHERE m.channel = ? AND (? = '' OR m.created_at < ?)
+            AND (? <> 'local' OR (
+              EXISTS (SELECT 1 FROM player_presence p
+                WHERE p.character_id = m.sender_character_id
+                AND p.last_seen >= datetime('now', '-2 minutes')
+                AND ((p.x - ?) * (p.x - ?) + (p.y - ?) * (p.y - ?)) <= 62500)
+            ))
+          ORDER BY m.created_at DESC LIMIT 50
+        `;
+        args = [channel, before, before, channel, session.x, session.x, session.y, session.y];
+      }
+      const result = await db.prepare(query).bind(...args).all();
+      return json({ success: true, messages: (result.results || []).reverse() });
+    }
+
+    if (path === "/api/social/messages" && method === "POST") {
+      const body = await readBody(request);
+      const channel = String(body?.channel || "global");
+      const message = String(body?.message || "").trim();
+      const target = String(body?.targetCharacterId || "");
+      if (!["global","local","whisper"].includes(channel)) return json({ error: "Channel chat tidak valid." }, 400);
+      if (!message || message.length > 500) return json({ error: "Pesan harus 1–500 karakter." }, 400);
+      if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(message)) return json({ error: "Pesan berisi karakter yang tidak diizinkan." }, 400);
+      let recipient = null;
+      if (channel === "whisper") {
+        if (!target || target === session.character_id) return json({ error: "Pilih pemain lain untuk pesan pribadi." }, 400);
+        recipient = await db.prepare("SELECT id FROM characters WHERE id = ?").bind(target).first();
+        if (!recipient) return json({ error: "Pemain tidak ditemukan." }, 404);
+      }
+      if (channel === "local") {
+        const nearby = await db.prepare(`
+          SELECT character_id FROM player_presence
+          WHERE character_id = ? AND last_seen >= datetime('now', '-2 minutes')
+            AND ((x - ?) * (x - ?) + (y - ?) * (y - ?)) <= 62500
+        `).bind(session.character_id, session.x, session.x, session.y, session.y).first();
+        if (!nearby) return json({ error: "Perbarui posisi sebelum mengirim chat lokal." }, 409);
+      }
+      const id = crypto.randomUUID();
+      await db.prepare(`
+        INSERT INTO social_messages (id, sender_character_id, recipient_character_id, channel, message)
+        VALUES (?, ?, ?, ?, ?)
+      `).bind(id, session.character_id, recipient?.id || null, channel, message).run();
+      return json({ success: true, message: { id, channel, message, senderCharacterId: session.character_id, senderName: session.display_name, recipientCharacterId: recipient?.id || null, createdAt: new Date().toISOString() } }, 201);
+    }
+
+    if (path === "/api/social/friends" && method === "GET") {
+      const result = await db.prepare(`
+        SELECT f.id AS requestId, f.status, f.created_at AS createdAt,
+          CASE WHEN f.requester_character_id = ? THEN f.addressee_character_id ELSE f.requester_character_id END AS characterId,
+          c.display_name AS displayName,
+          CASE WHEN f.requester_character_id = ? THEN 'outgoing' ELSE 'incoming' END AS direction
+        FROM player_friendships f
+        JOIN characters c ON c.id = CASE WHEN f.requester_character_id = ? THEN f.addressee_character_id ELSE f.requester_character_id END
+        WHERE f.requester_character_id = ? OR f.addressee_character_id = ?
+        ORDER BY CASE f.status WHEN 'pending' THEN 0 ELSE 1 END, f.created_at DESC
+        LIMIT 100
+      `).bind(session.character_id, session.character_id, session.character_id, session.character_id, session.character_id).all();
+      return json({ success: true, friends: result.results || [] });
+    }
+
+    if (path === "/api/social/friends/request" && method === "POST") {
+      const body = await readBody(request);
+      const target = String(body?.targetCharacterId || "");
+      if (!target || target === session.character_id) return json({ error: "Target teman tidak valid." }, 400);
+      const exists = await db.prepare("SELECT id FROM characters WHERE id = ?").bind(target).first();
+      if (!exists) return json({ error: "Pemain tidak ditemukan." }, 404);
+      const reverse = await db.prepare("SELECT id, status FROM player_friendships WHERE requester_character_id = ? AND addressee_character_id = ?").bind(target, session.character_id).first();
+      if (reverse?.status === "accepted") return json({ error: "Kalian sudah berteman." }, 409);
+      if (reverse?.status === "pending") {
+        await db.prepare("UPDATE player_friendships SET status = 'accepted', updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(reverse.id).run();
+        return json({ success: true, message: "Permintaan pertemanan diterima. Kalian sekarang berteman." });
+      }
+      const existing = await db.prepare("SELECT id, status FROM player_friendships WHERE requester_character_id = ? AND addressee_character_id = ?").bind(session.character_id, target).first();
+      if (existing?.status === "accepted") return json({ error: "Kalian sudah berteman." }, 409);
+      if (existing?.status === "pending") return json({ error: "Permintaan pertemanan sudah dikirim." }, 409);
+      await db.prepare(`
+        INSERT INTO player_friendships (id, requester_character_id, addressee_character_id, status)
+        VALUES (?, ?, ?, 'pending')
+        ON CONFLICT(requester_character_id, addressee_character_id) DO UPDATE SET status = 'pending', updated_at = CURRENT_TIMESTAMP
+      `).bind(crypto.randomUUID(), session.character_id, target).run();
+      return json({ success: true, message: "Permintaan pertemanan terkirim." }, 201);
+    }
+
+    if (path === "/api/social/friends/respond" && method === "POST") {
+      const body = await readBody(request);
+      const requestId = String(body?.requestId || "");
+      const accept = body?.accept === true;
+      const result = await db.prepare(`
+        UPDATE player_friendships
+        SET status = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND addressee_character_id = ? AND status = 'pending'
+      `).bind(accept ? "accepted" : "declined", requestId, session.character_id).run();
+      if (!result.meta?.changes) return json({ error: "Permintaan tidak ditemukan atau sudah diproses." }, 404);
+      return json({ success: true, message: accept ? "Permintaan pertemanan diterima." : "Permintaan pertemanan ditolak." });
+    }
+
+    return json({ error: "Endpoint sosial tidak ditemukan." }, 404);
+  }
+
   return json({ error: "Endpoint API tidak ditemukan." }, 404);
 }
 
