@@ -288,13 +288,27 @@ async function handleApi(request, env) {
         y: Math.max(20, Math.min(500, Math.round(Number(d?.y) || 0))),
         type: allowedTypes.has(d?.type) ? d.type : "flower"
       }));
+      const inventoryInput = island.inventory && typeof island.inventory === "object" ? island.inventory : {};
+      const inventory = {};
+      for (const type of ["flower", "lamp", "mushroom", "crystal", "tree", "bench", "pond"]) {
+        inventory[type] = Math.max(0, Math.min(999, Math.round(Number(inventoryInput[type]) || 0)));
+      }
+      const garden = Array.isArray(island.garden) ? island.garden.slice(0, 3).map(plot => {
+        if (!plot || !plot.plantedAt) return null;
+        const plantedAt = Number(plot.plantedAt);
+        return Number.isFinite(plantedAt) ? { plantedAt: Math.max(Date.now() - 86400000, Math.min(Date.now() + 60000, Math.round(plantedAt))) } : null;
+      }) : [];
       const clean = {
         decorations: cleanDecorations,
         hunger: Math.max(0, Math.min(100, Math.round(Number(island.hunger ?? 75) || 0))),
         happiness: Math.max(0, Math.min(100, Math.round(Number(island.happiness ?? 85) || 0))),
         care: Math.max(0, Math.min(1000000, Math.round(Number(island.care) || 0))),
         play: Math.max(0, Math.min(1000000, Math.round(Number(island.play) || 0))),
-        xp: Math.max(0, Math.min(1000000, Math.round(Number(island.xp) || 0)))
+        xp: Math.max(0, Math.min(1000000, Math.round(Number(island.xp) || 0))),
+        coins: Math.max(0, Math.min(1000000, Math.round(Number(island.coins ?? 20) || 0))),
+        seeds: Math.max(0, Math.min(99, Math.round(Number(island.seeds ?? 3) || 0))),
+        garden,
+        inventory
       };
       await db.prepare(`
         INSERT INTO player_islands (character_id, island_data, updated_at)
