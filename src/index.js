@@ -239,6 +239,69 @@ async function handleApi(request, env) {
     }));
   }
 
+  // Pulau personal: data tersimpan di D1, tanpa proses latar atau polling.
+  if (path.startsWith("/api/island")) {
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS player_islands (
+        character_id TEXT PRIMARY KEY,
+        island_data TEXT NOT NULL DEFAULT '{}',
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
+      )
+    `).run();
+
+    if (path === "/api/island/world" && method === "GET") {
+      const username = String(url.searchParams.get("username") || "").trim().toLowerCase();
+      if (!/^[a-z0-9_]{3,20}$/.test(username)) return json({ error: "Nama dunia tidak valid." }, 400);
+      const owner = await db.prepare("SELECT u.username, c.display_name, c.id AS character_id FROM users u JOIN characters c ON c.user_id=u.id WHERE u.username=? LIMIT 1").bind(username).first();
+      if (!owner) return json({ error: "Dunia ini belum ditemukan." }, 404);
+      const island = await db.prepare("SELECT island_data, updated_at FROM player_islands WHERE character_id=? LIMIT 1").bind(owner.character_id).first();
+      let data = {};
+      try { data = island?.island_data ? JSON.parse(island.island_data) : {}; } catch {}
+      return json({ success: true, owner: { username: owner.username, displayName: owner.display_name }, island: data, updatedAt: island?.updated_at || null });
+    }
+
+    const session = await getSession(request, db);
+    if (!session) return json({ error: "Sesi berakhir. Silakan masuk kembali." }, 401);
+
+    if (path === "/api/island" && method === "GET") {
+      const row = await db.prepare("SELECT island_data, updated_at FROM player_islands WHERE character_id=? LIMIT 1").bind(session.character_id).first();
+      let island = null;
+      try { island = row?.island_data ? JSON.parse(row.island_data) : null; } catch {}
+      return json({ success: true, island, updatedAt: row?.updated_at || null });
+    }
+
+    if (path === "/api/island" && method === "POST") {
+      const body = await readBody(request);
+      if (!body || !body.island || typeof body.island !== "object" || Array.isArray(body.island)) {
+        return json({ error: "Data pulau tidak valid." }, 400);
+      }
+      const island = body.island;
+      const decorations = Array.isArray(island.decorations) ? island.decorations.slice(0, 100) : [];
+      const allowedTypes = new Set(["flower", "lamp", "mushroom", "crystal", "tree", "bench", "pond"]);
+      const cleanDecorations = decorations.map(d => ({
+        x: Math.max(20, Math.min(920, Math.round(Number(d?.x) || 0))),
+        y: Math.max(20, Math.min(500, Math.round(Number(d?.y) || 0))),
+        type: allowedTypes.has(d?.type) ? d.type : "flower"
+      }));
+      const clean = {
+        decorations: cleanDecorations,
+        hunger: Math.max(0, Math.min(100, Math.round(Number(island.hunger ?? 75) || 0))),
+        happiness: Math.max(0, Math.min(100, Math.round(Number(island.happiness ?? 85) || 0))),
+        care: Math.max(0, Math.min(1000000, Math.round(Number(island.care) || 0))),
+        play: Math.max(0, Math.min(1000000, Math.round(Number(island.play) || 0))),
+        xp: Math.max(0, Math.min(1000000, Math.round(Number(island.xp) || 0)))
+      };
+      await db.prepare(`
+        INSERT INTO player_islands (character_id, island_data, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(character_id) DO UPDATE SET island_data=excluded.island_data, updated_at=CURRENT_TIMESTAMP
+      `).bind(session.character_id, JSON.stringify(clean)).run();
+      return json({ success: true, message: "Pulau berhasil disimpan.", island: clean });
+    }
+    return json({ error: "Endpoint pulau tidak ditemukan." }, 404);
+  }
+
   if (path === "/api/health" && method === "GET") {
     return json({
       success: true,
