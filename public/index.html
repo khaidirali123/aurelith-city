@@ -693,18 +693,28 @@ footer {
               <div class="stat"><small>Tingkat buronan</small><strong id="wantedLevel">0 / 5</strong></div>
             </div>
             <div class="notice" id="gameActivityStatus">Memuat status aktivitas...</div>
+            <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+              <div class="stat"><small>Kebugaran</small><strong id="skillFitness">Lv 1 · 0 XP</strong></div>
+              <div class="stat"><small>Pengetahuan</small><strong id="skillKnowledge">Lv 1 · 0 XP</strong></div>
+              <div class="stat"><small>Kerajinan</small><strong id="skillCrafting">Lv 1 · 0 XP</strong></div>
+            </div>
+            <p class="muted">Aktivitas berdurasi tetap berjalan saat kamu logout. Hasil, energi, dan XP diproses oleh server ketika waktunya selesai.</p>
             <div class="field"><label for="activityHours">Durasi aktivitas</label>
               <select id="activityHours"><option value="1">1 jam</option><option value="2">2 jam</option><option value="4">4 jam</option><option value="8">8 jam</option></select>
             </div>
             <div class="row-actions">
-              <button onclick="startGameActivity('rest')">🛌 Mulai istirahat</button>
+              <button onclick="startGameActivity('rest')">🛌 Istirahat</button>
               <button onclick="startGameActivity('side_job')">🧰 Kerja sampingan</button>
+              <button onclick="startGameActivity('training')">🏋️ Latihan</button>
+              <button onclick="startGameActivity('study')">📚 Belajar</button>
+              <button onclick="startGameActivity('volunteer')">🤝 Sukarela</button>
+              <button onclick="startGameActivity('craft')">🛠️ Kerajinan</button>
             </div>
             <div id="gameMessage" class="message" role="status"></div>
           </div>
           <div class="panel">
             <h2>🎒 Inventaris</h2>
-            <p class="muted">Ruang inventaris sudah disiapkan untuk item yang bisa dikumpulkan di pengembangan berikutnya.</p>
+            <p class="muted">Kumpulkan barang, gunakan perlengkapan, dan kirim item kepada pemain lain. Barang dan jumlahnya tersimpan di akunmu.</p>
             <div id="inventoryList" class="list"><div class="empty">Memuat inventaris...</div></div>
           </div>
           <div class="panel">
@@ -1204,6 +1214,11 @@ async function loadGameState() {
     character.currentActivity = data.character.current_activity;
     updateCharacterUI();
   }
+  const skillXp = Object.fromEntries((data.skills || []).map(s => [s.skill_key, Number(s.xp || 0)]));
+  const skillView = (xp) => "Lv " + (Math.floor(xp / 100) + 1) + " · " + xp + " XP";
+  $("skillFitness").textContent = skillView(skillXp.fitness || 0);
+  $("skillKnowledge").textContent = skillView(skillXp.knowledge || 0);
+  $("skillCrafting").textContent = skillView(skillXp.crafting || 0);
   $("gameHealth").textContent = (gameState.health ?? 100) + " / 100";
   $("wantedLevel").innerHTML = '<span class="wanted-stars">' + "★".repeat(Number(gameState.wantedLevel || 0)) + "☆".repeat(5 - Number(gameState.wantedLevel || 0)) + '</span> ' + (gameState.wantedLevel || 0) + " / 5";
   const active = gameState.activityType;
