@@ -702,7 +702,16 @@ async function handleApi(request, env) {
         )
       `),
       db.prepare("CREATE INDEX IF NOT EXISTS idx_game_state_activity_end ON character_game_state(activity_ends_at)"),
-      db.prepare("CREATE INDEX IF NOT EXISTS idx_inventory_character ON character_inventory(character_id)")
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_inventory_character ON character_inventory(character_id)"),
+      db.prepare(`CREATE TABLE IF NOT EXISTS character_skills (
+        character_id TEXT NOT NULL,
+        skill_key TEXT NOT NULL,
+        xp INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(character_id, skill_key),
+        FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
+      )`),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_skills_character ON character_skills(character_id)")
     ]);
 
     await db.prepare(`
@@ -747,22 +756,39 @@ async function handleApi(request, env) {
         return { type: "rest", reward: 0, message: "Waktu istirahat selesai. Energi dan suasana hati pulih." };
       }
 
-      if (state.activity_type === "side_job") {
+      if (state.activity_type === "side_job" || state.activity_type === "volunteer") {
         const transactionId = crypto.randomUUID();
+        const label = state.activity_type === "volunteer" ? "Kegiatan sukarela" : "Pekerjaan sampingan offline";
+        const energyCost = state.activity_type === "volunteer" ? 5 : 10;
         await db.batch([
-          db.prepare(`UPDATE characters SET money = money + ?, energy = MAX(0, energy - 10),
-            current_activity = 'Pekerjaan sampingan selesai', updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?`).bind(reward, session.character_id),
-          db.prepare(`INSERT INTO wallet_transactions
-            (id, character_id, transaction_type, amount, description)
-            VALUES (?, ?, 'income', ?, 'Pendapatan pekerjaan sampingan offline')`)
-            .bind(transactionId, session.character_id, reward),
-          db.prepare(`INSERT INTO activities
-            (id, character_id, activity_type, details, status)
-            VALUES (?, ?, 'side_job', 'Pekerjaan sampingan offline selesai', 'completed')`)
-            .bind(crypto.randomUUID(), session.character_id)
+          db.prepare(`UPDATE characters SET money = money + ?, energy = MAX(0, energy - ?),
+            mood = MIN(100, mood + ?), current_activity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+            .bind(reward, energyCost, state.activity_type === "volunteer" ? 5 : 0, label + " selesai", session.character_id),
+          db.prepare(`INSERT INTO wallet_transactions (id, character_id, transaction_type, amount, description)
+            VALUES (?, ?, 'income', ?, ?)`).bind(transactionId, session.character_id, reward, label + " selesai"),
+          db.prepare(`INSERT INTO activities (id, character_id, activity_type, details, status)
+            VALUES (?, ?, ?, ?, 'completed')`).bind(crypto.randomUUID(), session.character_id, state.activity_type, label + " selesai")
         ]);
-        return { type: "side_job", reward, message: "Pekerjaan sampingan selesai. Pendapatan sudah masuk ke dompet." };
+        return { type: state.activity_type, reward, message: label + " selesai. Pendapatan sudah masuk ke dompet." };
+      }
+      const skillForActivity = { training: "fitness", study: "knowledge", craft: "crafting" }[state.activity_type];
+      if (skillForActivity) {
+        const xp = Math.max(5, Math.round(minutes / 5));
+        const skillLabel = { fitness: "Kebugaran", knowledge: "Pengetahuan", crafting: "Keterampilan" }[skillForActivity];
+        const energyCost = state.activity_type === "training" ? Math.min(35, Math.ceil(minutes / 4)) : state.activity_type === "craft" ? Math.min(20, Math.ceil(minutes / 8)) : Math.min(12, Math.ceil(minutes / 12));
+        await db.batch([
+          db.prepare(`INSERT INTO character_skills (character_id, skill_key, xp)
+            VALUES (?, ?, ?) ON CONFLICT(character_id, skill_key)
+            DO UPDATE SET xp = character_skills.xp + excluded.xp, updated_at = CURRENT_TIMESTAMP`)
+            .bind(session.character_id, skillForActivity, xp),
+          db.prepare(`UPDATE characters SET energy = MAX(0, energy - ?), mood = MIN(100, mood + ?),
+            current_activity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+            .bind(energyCost, state.activity_type === "study" ? 4 : 2, skillLabel + " meningkat", session.character_id),
+          db.prepare(`INSERT INTO activities (id, character_id, activity_type, details, status)
+            VALUES (?, ?, ?, ?, 'completed')`)
+            .bind(crypto.randomUUID(), session.character_id, state.activity_type, skillLabel + " meningkat +" + xp + " XP")
+        ]);
+        return { type: state.activity_type, reward: 0, xp, skill: skillForActivity, message: skillLabel + " meningkat +" + xp + " XP." };
       }
       return null;
     };
@@ -770,11 +796,12 @@ async function handleApi(request, env) {
     const settleResult = await settleFinishedActivity();
 
     if (path === "/api/game/state" && method === "GET") {
-      const [state, characterRow, inventory, recentActivities] = await Promise.all([
+      const [state, characterRow, inventory, recentActivities, skills] = await Promise.all([
         db.prepare("SELECT * FROM character_game_state WHERE character_id = ?").bind(session.character_id).first(),
         db.prepare("SELECT money, energy, mood, current_activity FROM characters WHERE id = ?").bind(session.character_id).first(),
         db.prepare("SELECT item_key, item_name, quantity FROM character_inventory WHERE character_id = ? AND quantity > 0 ORDER BY item_name").bind(session.character_id).all(),
-        db.prepare("SELECT activity_type, details, status, started_at FROM activities WHERE character_id = ? ORDER BY started_at DESC LIMIT 12").bind(session.character_id).all()
+        db.prepare("SELECT activity_type, details, status, started_at FROM activities WHERE character_id = ? ORDER BY started_at DESC LIMIT 12").bind(session.character_id).all(),
+        db.prepare("SELECT skill_key, xp FROM character_skills WHERE character_id = ? ORDER BY skill_key").bind(session.character_id).all()
       ]);
       return json({
         success: true,
@@ -790,6 +817,7 @@ async function handleApi(request, env) {
         character: characterRow,
         inventory: inventory.results || [],
         activities: recentActivities.results || [],
+        skills: skills.results || [],
         settledActivity: settleResult
       });
     }
@@ -798,8 +826,9 @@ async function handleApi(request, env) {
       const body = await readBody(request);
       const activityType = String(body?.activityType || "");
       const hours = Number(body?.hours || 1);
-      if (!["rest", "side_job"].includes(activityType)) {
-        return json({ error: "Pilih aktivitas istirahat atau pekerjaan sampingan." }, 400);
+      const activityTypes = ["rest", "side_job", "training", "study", "volunteer", "craft"];
+      if (!activityTypes.includes(activityType)) {
+        return json({ error: "Jenis aktivitas tidak dikenal." }, 400);
       }
       if (!Number.isInteger(hours) || hours < 1 || hours > 8) {
         return json({ error: "Durasi harus 1–8 jam." }, 400);
@@ -809,10 +838,9 @@ async function handleApi(request, env) {
       if (current?.activity_type) {
         return json({ error: "Karakter sedang menjalankan aktivitas. Tunggu sampai selesai atau klaim hasilnya." }, 409);
       }
-      if (activityType === "side_job" && Number(session.energy) < 10) {
-        return json({ error: "Energi terlalu rendah untuk pekerjaan sampingan." }, 400);
-      }
-      const reward = activityType === "side_job" ? hours * 100 : 0;
+      const energyRequired = activityType === "side_job" ? 10 : activityType === "training" ? 20 : activityType === "study" ? 8 : activityType === "craft" ? 15 : 0;
+      if (Number(session.energy) < energyRequired) return json({ error: "Energi tidak cukup untuk aktivitas ini." }, 400);
+      const reward = activityType === "side_job" ? hours * 100 : activityType === "volunteer" ? hours * 35 : 0;
       await db.prepare(`
         UPDATE character_game_state
         SET activity_type = ?, activity_started_at = CURRENT_TIMESTAMP,
@@ -821,17 +849,15 @@ async function handleApi(request, env) {
         WHERE character_id = ? AND activity_type IS NULL
       `).bind(activityType, hours, reward, session.character_id).run();
       await db.prepare("UPDATE characters SET current_activity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-        .bind(activityType === "rest" ? "Istirahat offline" : "Pekerjaan sampingan offline", session.character_id).run();
+        .bind(({rest:"Istirahat offline",side_job:"Pekerjaan sampingan offline",training:"Latihan kebugaran",study:"Belajar",volunteer:"Kegiatan sukarela",craft:"Mengerjakan kerajinan"})[activityType], session.character_id).run();
       await db.prepare(`
         INSERT INTO activities (id, character_id, activity_type, details, status)
         VALUES (?, ?, ?, ?, 'in_progress')
       `).bind(crypto.randomUUID(), session.character_id, activityType,
-        (activityType === "rest" ? "Istirahat selama " : "Pekerjaan sampingan selama ") + hours + " jam").run();
+        ({rest:"Istirahat selama ",side_job:"Pekerjaan sampingan selama ",training:"Latihan kebugaran selama ",study:"Belajar selama ",volunteer:"Kegiatan sukarela selama ",craft:"Mengerjakan kerajinan selama "}[activityType]) + hours + " jam").run();
       return json({
         success: true,
-        message: activityType === "rest"
-          ? "Istirahat dimulai. Kembali setelah durasinya selesai untuk memulihkan energi."
-          : "Pekerjaan sampingan dimulai. Pendapatan akan diberikan setelah durasinya selesai.",
+        message: ({rest:"Istirahat dimulai. Energi pulih setelah durasi selesai.",side_job:"Pekerjaan sampingan dimulai. Pendapatan diberikan saat selesai.",training:"Latihan dimulai. Kebugaran bertambah saat selesai.",study:"Belajar dimulai. Pengetahuan bertambah saat selesai.",volunteer:"Kegiatan sukarela dimulai. Kamu mendapat uang saku dan mood.",craft:"Kegiatan kerajinan dimulai. Keterampilan bertambah saat selesai."})[activityType],
         activityType, hours, reward, endsAt: new Date(Date.now() + hours * 3600000).toISOString()
       }, 201);
     }
