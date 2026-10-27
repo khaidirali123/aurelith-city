@@ -1509,7 +1509,7 @@ export class AurelithRealtime {
     const message = String(data.message || "").trim();
     const targetId = String(data.targetCharacterId || "");
     if (!["global", "local", "whisper"].includes(channel)) throw new Error("Channel chat tidak valid.");
-    if (!message || message.length > 500 || /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]/.test(message)) {
+    if (!message || message.length > 500 || /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(message)) {
       throw new Error("Pesan harus 1–500 karakter yang valid.");
     }
     let recipient = null;
