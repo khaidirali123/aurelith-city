@@ -584,6 +584,7 @@ footer {
       <button data-tab="jobsTab" onclick="showTab('jobsTab',this)">💼 Pekerjaan</button>
       <button data-tab="walletTab" onclick="showTab('walletTab',this)">💰 Dompet</button>
       <button data-tab="gameTab" onclick="showTab('gameTab',this)">🎮 Aktivitas & kriminalitas</button>
+      <button data-tab="lifeTab" onclick="showTab('lifeTab',this)">🏙️ Kehidupan</button>
       <button data-tab="socialTab" onclick="showTab('socialTab',this)">👥 Multiplayer</button>
       <button data-tab="settingsTab" onclick="showTab('settingsTab',this)">👤 Karakter</button>
     </div>
@@ -662,6 +663,49 @@ footer {
         </div>
         <div id="jobsList" class="job-list"><div class="empty">Memuat pekerjaan...</div></div>
         <div id="jobsMessage" class="message" role="status"></div>
+      </div>
+      <div class="panel">
+        <h2>📈 Karier dan kenaikan pangkat</h2>
+        <p class="muted">Setiap kali kamu bekerja, pengalaman pekerjaan bertambah. Setiap tiga sif menaikkan pangkat hingga level 5 dan meningkatkan gaji.</p>
+        <div id="careerList" class="list"><div class="empty">Memuat progres karier...</div></div>
+      </div>
+    </section>
+
+    <section id="lifeTab" class="tab-panel">
+      <div class="layout">
+        <div class="stack">
+          <div class="panel">
+            <h2>🧍 Kebutuhan harian</h2>
+            <p class="muted">Kebutuhan berkurang seiring waktu, termasuk saat kamu offline. Jaga karakter tetap makan, bersih, dan cukup istirahat.</p>
+            <div id="needsList" class="list"><div class="empty">Memuat kebutuhan...</div></div>
+            <div class="row-actions">
+              <button onclick="fulfillNeed('eat')">🍲 Makan · 50</button>
+              <button onclick="fulfillNeed('shower')">🚿 Mandi · 20</button>
+              <button onclick="fulfillNeed('sleep')">🛌 Tidur singkat</button>
+            </div>
+            <div id="needsMessage" class="message" role="status"></div>
+          </div>
+          <div class="panel">
+            <h2>🏪 Bisnis milik pemain</h2>
+            <p class="muted">Bangun usaha menggunakan modal, kumpulkan pendapatan setiap 30 menit, dan tingkatkan level bisnis.</p>
+            <div class="row-actions">
+              <button onclick="createBusiness('shop')">🏪 Toko · 4.000</button>
+              <button onclick="createBusiness('cafe')">☕ Kafe · 5.000</button>
+              <button onclick="createBusiness('workshop')">🛠️ Bengkel · 6.500</button>
+            </div>
+            <div id="businessList" class="list"><div class="empty">Memuat bisnis...</div></div>
+            <div id="businessMessage" class="message" role="status"></div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="panel">
+            <h2>🚶 Kehidupan warga kota</h2>
+            <p class="muted">NPC memiliki pekerjaan, distrik, suasana hati, dan rutinitas berdasarkan waktu kota.</p>
+            <div id="cityClock" class="notice">Memuat waktu kota...</div>
+            <div id="npcList" class="social-list"><div class="empty">Memuat warga...</div></div>
+            <button class="secondary" onclick="loadCityLife()">↻ Perbarui aktivitas warga</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1026,6 +1070,79 @@ function updateCharacterUI() {
   const avatarClass = "avatar skin-" + settings.skinTone + " outfit-" + settings.outfit;
   $("avatar").className = avatarClass;
   $("previewAvatar").className = avatarClass;
+}
+
+async function loadCareer() {
+  const data = await api("/api/career");
+  const list=$("careerList");list.replaceChildren();
+  if(!data.careers?.length){list.innerHTML='<div class="empty">Belum ada karier yang tercatat. Ambil pekerjaan untuk mulai mengumpulkan pengalaman.</div>';return;}
+  for(const career of data.careers){
+    const row=document.createElement("div");row.className="transaction";
+    const title=document.createElement("strong");title.textContent=career.job_name+" · Pangkat "+career.rank+"/5";
+    const detail=document.createElement("span");detail.textContent=career.experience+" sif selesai · "+(career.rank>1?"bonus gaji hingga "+((career.rank-1)*5)+"%":"belum ada bonus pangkat");
+    row.append(title,detail);list.append(row);
+  }
+}
+function renderNeedBar(label,value){
+  const row=document.createElement("div");row.className="transaction";
+  const head=document.createElement("div");head.className="job-head";
+  const name=document.createElement("strong");name.textContent=label;
+  const number=document.createElement("span");number.textContent=value+"/100";
+  head.append(name,number);
+  const track=document.createElement("div");track.style.cssText="height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:8px";
+  const fill=document.createElement("div");fill.style.cssText="height:100%;border-radius:999px;background:"+(value<20?"var(--red)":"var(--green)");fill.style.width=value+"%";
+  track.append(fill);row.append(head,track);return row;
+}
+async function loadNeeds(){
+  const data=await api("/api/needs");const list=$("needsList");list.replaceChildren();
+  list.append(renderNeedBar("Kenyang",Number(data.needs?.hunger??100)),renderNeedBar("Kebersihan",Number(data.needs?.hygiene??100)),renderNeedBar("Istirahat",Number(data.needs?.rest??100)));
+  if(data.penalties) {const warning=document.createElement("div");warning.className="notice";warning.textContent="Peringatan: "+data.penalties+" kebutuhan sangat rendah. Pulihkan kebutuhan untuk menjaga kondisi karakter.";list.append(warning);}
+}
+async function fulfillNeed(action){
+  try{const result=await api("/api/needs",{method:"POST",body:JSON.stringify({action})});$("needsMessage").textContent=result.message;await Promise.all([loadNeeds(),refreshAll()]);}
+  catch(e){$("needsMessage").textContent=e.message;}
+}
+async function loadBusinesses(){
+  const data=await api("/api/business");const list=$("businessList");list.replaceChildren();
+  if(!data.businesses?.length){list.innerHTML='<div class="empty">Kamu belum memiliki bisnis. Pilih usaha di atas untuk mulai.</div>';return;}
+  for(const business of data.businesses){
+    const card=document.createElement("article");card.className="job";
+    const title=document.createElement("strong");title.textContent=business.name+" · Level "+business.level;
+    const meta=document.createElement("p");meta.className="muted";meta.textContent="Modal "+money(business.invested)+" · Pendapatan tersedia "+money(business.estimated_income);
+    const actions=document.createElement("div");actions.className="row-actions";
+    for(const [label,action] of [["Klaim pendapatan","collect"],["Upgrade level","upgrade"]]){
+      const btn=document.createElement("button");btn.textContent=label;btn.addEventListener("click",()=>businessAction(business.id,action,btn));actions.append(btn);
+    }
+    card.append(title,meta,actions);list.append(card);
+  }
+}
+async function createBusiness(businessType){
+  try{const result=await api("/api/business",{method:"POST",body:JSON.stringify({action:"create",businessType})});$("businessMessage").textContent=result.message;await Promise.all([loadBusinesses(),loadWallet(),refreshAll()]);}
+  catch(e){$("businessMessage").textContent=e.message;}
+}
+async function businessAction(businessId,action,button){
+  button.disabled=true;
+  try{const result=await api("/api/business",{method:"POST",body:JSON.stringify({action,businessId})});$("businessMessage").textContent=result.message||("Pendapatan diterima: "+money(result.net||0));await Promise.all([loadBusinesses(),loadWallet(),refreshAll()]);}
+  catch(e){$("businessMessage").textContent=e.message;}
+  finally{button.disabled=false;}
+}
+async function loadCityLife(){
+  try{
+    const data=await api("/api/city/state");$("cityClock").textContent="Waktu kota: "+data.cityTime;
+    const list=$("npcList");list.replaceChildren();
+    for(const npc of data.npcs||[]){
+      const row=document.createElement("div");row.className="social-player";
+      const main=document.createElement("div");main.className="social-player-main";
+      const name=document.createElement("strong");name.textContent=npc.display_name+" · "+npc.occupation;
+      const detail=document.createElement("span");detail.textContent=npc.district+" — "+npc.last_action;
+      const mood=document.createElement("span");mood.className="activity-chip";mood.textContent="Mood "+npc.mood+"/100";
+      main.append(name,detail);row.append(main,mood);list.append(row);
+    }
+  }catch(e){$("cityClock").textContent=e.message;}
+}
+async function loadLivingWorld(){
+  const results=await Promise.allSettled([loadCareer(),loadNeeds(),loadBusinesses(),loadCityLife()]);
+  for(const result of results)if(result.status==="rejected")addEvent("Kehidupan kota: "+result.reason.message);
 }
 
 async function loadJobs() {
@@ -1444,6 +1561,7 @@ function showTab(tabId, button) {
   if (tabId === "jobsTab" && !jobs.length) loadJobs().catch(e => addEvent(e.message));
   if (tabId === "settingsTab") loadSettings().catch(e => addEvent(e.message));
   if (tabId === "gameTab") loadGameState().catch(e => showGameMessage(e.message, false));
+  if (tabId === "lifeTab") loadLivingWorld();
   if (tabId === "socialTab") refreshSocial().catch(e => setSocialStatus(e.message, false));
   if (tabId === "homeTab") refreshMapPlayers();
 }
@@ -1458,7 +1576,11 @@ async function refreshAll() {
     loadJobs(),
     loadWallet(),
     loadSettings(),
-    loadGameState()
+    loadGameState(),
+    loadCareer(),
+    loadNeeds(),
+    loadBusinesses(),
+    loadCityLife()
   ]);
 
   for (const result of results) {
