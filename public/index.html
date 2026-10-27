@@ -1538,7 +1538,7 @@ function normalizeUniverseData(value) {
 function universeStorageKey() {
   return "aurelith_universe_" + ((currentUser && currentUser.id) || "guest");
 }
-async function loadUniverseData() {
+async async function loadUniverseData() {
   const sharedName = new URLSearchParams(location.search).get("world");
   viewingSharedWorld = Boolean(sharedName && (!currentUser || sharedName.toLowerCase() !== String(currentUser.username || "").toLowerCase()));
   if (viewingSharedWorld) {
@@ -1742,7 +1742,7 @@ function universeFeedPet(){if(viewingSharedWorld)return;if(Number(universeData.c
 function universePlayPet(){if(viewingSharedWorld)return;universeData.happiness=Math.min(100,universeData.happiness+18);universeData.hunger=Math.max(0,universeData.hunger-7);universeData.play++;universeData.xp++;saveUniverseData();renderUniverse();universeMessage("Pip bermain bersamamu. Persahabatan kalian semakin kuat!");}
 function toggleUniverseDecor(){if(viewingSharedWorld)return;universeDecorMode=!universeDecorMode;const b=$("universeDecorButton");if(b)b.textContent="🌼 Mode dekorasi: "+(universeDecorMode?"aktif":"mati");universeMessage(universeDecorMode?"Mode dekorasi aktif. Ketuk area pulau untuk menaruh benda dari tas dekorasimu.":"Mode dekorasi dimatikan.");}
 (function attachUniverseCanvas(){const canvas=$("universeCanvas");if(!canvas)return;canvas.addEventListener("click",function(e){if(!universeDecorMode){universeMessage("Aktifkan mode dekorasi untuk menambahkan benda ke pulau.");return;}const r=canvas.getBoundingClientRect();const x=Math.round((e.clientX-r.left)*canvas.width/r.width);const y=Math.round((e.clientY-r.top)*canvas.height/r.height);if(x<150||x>810||y<190||y>390){universeMessage("Pilih area pulau yang berumput untuk menaruh dekorasi.");return;}const available=Object.entries(universeData.inventory||{}).filter(([type,count])=>Number(count)>0&&["flower","lamp","mushroom","crystal","tree","bench","pond"].includes(type));if(!available.length){universeMessage("Tas dekorasimu kosong. Beli dekorasi di toko pulau dahulu.");return;}const [type,count]=available[0];universeData.decorations=universeData.decorations||[];universeData.decorations.push({x:x,y:y,type:type});universeData.inventory[type]=Number(count)-1;universeData.xp=(universeData.xp||0)+1;saveUniverseData();renderUniverse();universeMessage("Dekorasi ditambahkan! Pulau kecilmu semakin unik.");});})();
-async function shareUniverse(){
+async async function shareUniverse(){
   const name=(character&&character.displayName)||"Petualang Aurelith";
   const url=location.origin+location.pathname+"?world="+encodeURIComponent((currentUser&&currentUser.username)||"guest");
   const text="Yuk kunjungi dunia pixel-art milikku di Aurelith City! 🌱✨";
