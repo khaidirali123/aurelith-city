@@ -503,7 +503,6 @@ footer {
 
 
 .game-action-result{padding:12px;border:1px solid var(--border);background:#14232d;margin:8px 0;border-radius:4px}
-.wanted-stars{color:#ffb56e;letter-spacing:3px}
 .game-activity-row{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px}
 .game-activity-row:last-child{border-bottom:0}
 @media(max-width:800px){#gameTab .stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -812,7 +811,6 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
             <p class="muted">Aktivitas dicatat di server. Kamu boleh keluar; saat kembali, server memeriksa apakah waktunya sudah selesai.</p>
             <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
               <div class="stat"><small>Kesehatan</small><strong id="gameHealth">100 / 100</strong></div>
-              <div class="stat"><small>Tingkat buronan</small><strong id="wantedLevel">0 / 5</strong></div>
             </div>
             <div class="notice" id="gameActivityStatus">Memuat status aktivitas...</div>
             <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
@@ -1406,7 +1404,6 @@ async function loadGameState() {
   $("skillKnowledge").textContent = skillView(skillXp.knowledge || 0);
   $("skillCrafting").textContent = skillView(skillXp.crafting || 0);
   $("gameHealth").textContent = (gameState.health ?? 100) + " / 100";
-  $("wantedLevel").innerHTML = '<span class="wanted-stars">' + "★".repeat(Number(gameState.wantedLevel || 0)) + "☆".repeat(5 - Number(gameState.wantedLevel || 0)) + '</span> ' + (gameState.wantedLevel || 0) + " / 5";
   const active = gameState.activityType;
   if (active && gameState.activityEndsAt) {
     const end = new Date(gameState.activityEndsAt.replace(" ", "T") + "Z");
@@ -1446,7 +1443,7 @@ async function loadGameState() {
   const log = $("gameActivityLog");
   log.replaceChildren();
   if (!data.activities?.length) {
-    log.innerHTML = '<div class="empty">Belum ada aktivitas. Mulai dari istirahat atau coba aksi kriminal.</div>';
+    log.innerHTML = '<div class="empty">Belum ada aktivitas. Mulai kegiatan santai di duniamu.</div>';
   } else {
     for (const item of data.activities) {
       const row = document.createElement("div");
@@ -1536,42 +1533,6 @@ async function startGameActivity(activityType) {
     showGameMessage(result.message, true);
     addEvent(result.message);
     await loadGameState();
-  } catch (error) {
-    showGameMessage(error.message, false);
-  }
-}
-
-async function attemptCrime(crimeType) {
-  const labels = {pickpocket:"mencopet", shoplift:"mencuri dari toko", heist:"melakukan perampokan berisiko"};
-  if (!confirm("Kamu yakin ingin " + labels[crimeType] + "? Aksi ini bisa gagal, mengurangi energi, dan menaikkan buronan.")) return;
-  showGameMessage("");
-  try {
-    const result = await api("/api/game/crime", {method:"POST", body:JSON.stringify({crimeType})});
-    if (result.character && character) {
-      character.money = result.character.money;
-      character.energy = result.character.energy;
-      character.mood = result.character.mood;
-      character.currentActivity = result.character.current_activity;
-      updateCharacterUI();
-    }
-    showGameMessage(result.message, result.outcome === "success");
-    addEvent(result.message);
-    await Promise.all([loadWallet(), loadGameState()]);
-  } catch (error) {
-    showGameMessage(error.message, false);
-  }
-}
-
-async function layLow() {
-  showGameMessage("");
-  try {
-    const result = await api("/api/game/lay-low", {method:"POST", body:"{}"});
-    showGameMessage(result.message, true);
-    addEvent(result.message);
-    await loadGameState();
-    const me = await api("/api/me");
-    character = me.character;
-    updateCharacterUI();
   } catch (error) {
     showGameMessage(error.message, false);
   }
