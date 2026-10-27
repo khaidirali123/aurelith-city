@@ -212,6 +212,25 @@ async function handleApi(request, env) {
   const method = request.method;
   const db = env.DB;
 
+  if (path === "/api/realtime" && method === "GET") {
+    if (!env.REALTIME) return json({ error: "Durable Object REALTIME belum dikonfigurasi." }, 503);
+    if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
+      return json({ error: "WebSocket upgrade diperlukan." }, 426);
+    }
+    const session = await getSession(request, db);
+    if (!session) return json({ error: "Silakan login kembali." }, 401);
+    const id = env.REALTIME.idFromName("aurelith-city-world");
+    const stub = env.REALTIME.get(id);
+    const headers = new Headers(request.headers);
+    headers.set("X-Aurelith-Character-Id", session.character_id);
+    headers.set("X-Aurelith-Display-Name", session.display_name || "Warga");
+    headers.set("X-Aurelith-X", String(session.x ?? 600));
+    headers.set("X-Aurelith-Y", String(session.y ?? 400));
+    return stub.fetch(new Request("https://realtime.internal/connect", {
+      method: "GET", headers
+    }));
+  }
+
   if (path === "/api/health" && method === "GET") {
     return json({
       success: true,
@@ -1248,6 +1267,222 @@ async function handleApi(request, env) {
   }
 
   return json({ error: "Endpoint API tidak ditemukan." }, 404);
+}
+
+
+
+// Durable Object: persistent WebSocket hub for player presence, movement and chat.
+export class AurelithRealtime {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+    this.sockets = new Set();
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname !== "/connect" || request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
+      return new Response("WebSocket upgrade required", { status: 426 });
+    }
+    const characterId = request.headers.get("X-Aurelith-Character-Id");
+    const displayName = request.headers.get("X-Aurelith-Display-Name") || "Warga";
+    if (!characterId) return new Response("Unauthorized", { status: 401 });
+    const pair = new WebSocketPair();
+    const client = pair[0];
+    const server = pair[1];
+    server.serializeAttachment({
+      characterId,
+      displayName,
+      x: Number(request.headers.get("X-Aurelith-X")) || 600,
+      y: Number(request.headers.get("X-Aurelith-Y")) || 400,
+      connectedAt: Date.now()
+    });
+    this.state.acceptWebSocket(server);
+    this.sockets.add(server);
+    server.send(JSON.stringify({ type: "connected", characterId, serverTime: Date.now() }));
+    await this.sendSnapshot(server);
+    await this.persistPresence(server);
+    await this.broadcast({
+      type: "presence",
+      action: "online",
+      player: this.publicPlayer(server)
+    }, server);
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  async webSocketMessage(socket, message) {
+    let data;
+    try {
+      if (typeof message !== "string" || message.length > 6000) throw new Error("Pesan WebSocket tidak valid.");
+      data = JSON.parse(message);
+    } catch {
+      socket.send(JSON.stringify({ type: "error", message: "Format pesan tidak valid." }));
+      return;
+    }
+    const attachment = socket.deserializeAttachment();
+    if (!attachment?.characterId) {
+      socket.close(1008, "Sesi tidak valid");
+      return;
+    }
+    try {
+      if (data.type === "ping") {
+        await this.persistPresence(socket);
+        socket.send(JSON.stringify({ type: "pong", serverTime: Date.now() }));
+        return;
+      }
+      if (data.type === "move") {
+        const x = Number(data.x), y = Number(data.y);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error("Koordinat tidak valid.");
+        attachment.x = Math.max(25, Math.min(1175, x));
+        attachment.y = Math.max(25, Math.min(775, y));
+        socket.serializeAttachment(attachment);
+        await this.env.DB.batch([
+          this.env.DB.prepare("UPDATE characters SET x = ?, y = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+            .bind(attachment.x, attachment.y, attachment.characterId),
+          this.env.DB.prepare(`INSERT INTO player_presence (character_id, x, y, last_seen)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(character_id) DO UPDATE SET x = excluded.x, y = excluded.y, last_seen = CURRENT_TIMESTAMP`)
+            .bind(attachment.characterId, attachment.x, attachment.y)
+        ]);
+        await this.broadcast({ type: "position", player: this.publicPlayer(socket) });
+        socket.send(JSON.stringify({ type: "move-ack", x: attachment.x, y: attachment.y }));
+        return;
+      }
+      if (data.type === "chat") {
+        await this.handleChat(socket, data);
+        return;
+      }
+      if (data.type === "friend-event") {
+        const targetId = String(data.targetCharacterId || "");
+        if (!targetId || targetId === attachment.characterId) throw new Error("Pemain tujuan tidak valid.");
+        const targetConnected = this.connectedSockets().some(s => s.deserializeAttachment()?.characterId === targetId);
+        await this.broadcast({
+          type: "social-notice",
+          targetCharacterId: targetId,
+          event: String(data.event || "activity").slice(0, 40),
+          fromCharacterId: attachment.characterId,
+          fromName: attachment.displayName
+        }, null, targetId);
+        socket.send(JSON.stringify({ type: "social-ack", targetCharacterId: targetId, deliveredLive: targetConnected }));
+        return;
+      }
+      socket.send(JSON.stringify({ type: "error", message: "Jenis interaksi WebSocket tidak dikenal." }));
+    } catch (error) {
+      socket.send(JSON.stringify({ type: "error", message: String(error?.message || "Interaksi gagal.") }));
+    }
+  }
+
+  async handleChat(socket, data) {
+    const sender = socket.deserializeAttachment();
+    const channel = String(data.channel || "global");
+    const message = String(data.message || "").trim();
+    const targetId = String(data.targetCharacterId || "");
+    if (!["global", "local", "whisper"].includes(channel)) throw new Error("Channel chat tidak valid.");
+    if (!message || message.length > 500 || /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]/.test(message)) {
+      throw new Error("Pesan harus 1–500 karakter yang valid.");
+    }
+    let recipient = null;
+    if (channel === "whisper") {
+      if (!targetId || targetId === sender.characterId) throw new Error("Pilih pemain lain untuk chat pribadi.");
+      recipient = await this.env.DB.prepare("SELECT id, display_name AS displayName FROM characters WHERE id = ?")
+        .bind(targetId).first();
+      if (!recipient) throw new Error("Pemain tidak ditemukan.");
+    }
+    if (channel === "local") {
+      const others = this.connectedSockets().map(s => s.deserializeAttachment()).filter(p => p?.characterId !== sender.characterId);
+      const close = others.some(p => ((p.x - sender.x) ** 2 + (p.y - sender.y) ** 2) <= 62500);
+      if (!close) throw new Error("Tidak ada pemain online di sekitar lokasi ini.");
+    }
+    const id = crypto.randomUUID();
+    const row = await this.env.DB.prepare(`INSERT INTO social_messages
+      (id, sender_character_id, recipient_character_id, channel, message)
+      VALUES (?, ?, ?, ?, ?) RETURNING id, created_at AS createdAt`)
+      .bind(id, sender.characterId, recipient?.id || null, channel, message).first();
+    const packet = {
+      type: "chat",
+      message: {
+        id, channel, message,
+        senderCharacterId: sender.characterId,
+        senderName: sender.displayName,
+        recipientCharacterId: recipient?.id || null,
+        recipientName: recipient?.displayName || null,
+        createdAt: row?.createdAt || new Date().toISOString()
+      }
+    };
+    if (channel === "whisper") {
+      socket.send(JSON.stringify(packet));
+      await this.broadcast(packet, socket, targetId);
+    } else if (channel === "local") {
+      const peers = this.connectedSockets().filter(s => {
+        const p = s.deserializeAttachment();
+        return p && ((p.x - sender.x) ** 2 + (p.y - sender.y) ** 2) <= 62500;
+      });
+      for (const peer of peers) this.safeSend(peer, packet);
+    } else {
+      await this.broadcast(packet);
+    }
+  }
+
+  async sendSnapshot(socket) {
+    const players = this.connectedSockets().map(s => this.publicPlayer(s))
+      .filter(p => p.characterId !== socket.deserializeAttachment()?.characterId);
+    this.safeSend(socket, { type: "snapshot", players });
+  }
+
+  async persistPresence(socket) {
+    const p = socket.deserializeAttachment();
+    if (!p?.characterId) return;
+    await this.env.DB.prepare(`INSERT INTO player_presence (character_id, x, y, last_seen)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(character_id) DO UPDATE SET x = excluded.x, y = excluded.y, last_seen = CURRENT_TIMESTAMP`)
+      .bind(p.characterId, p.x, p.y).run();
+  }
+
+  publicPlayer(socket) {
+    const p = socket.deserializeAttachment() || {};
+    return {
+      characterId: p.characterId,
+      displayName: p.displayName || "Warga",
+      x: p.x ?? 600, y: p.y ?? 400,
+      online: 1
+    };
+  }
+
+  connectedSockets() {
+    return this.state.getWebSockets();
+  }
+
+  safeSend(socket, packet) {
+    try { socket.send(JSON.stringify(packet)); } catch {}
+  }
+
+  async broadcast(packet, exceptSocket = null, targetCharacterId = null) {
+    for (const socket of this.connectedSockets()) {
+      if (socket === exceptSocket) continue;
+      const p = socket.deserializeAttachment();
+      if (targetCharacterId && p?.characterId !== targetCharacterId) continue;
+      this.safeSend(socket, packet);
+    }
+  }
+
+  async webSocketClose(socket) {
+    const p = socket.deserializeAttachment();
+    this.sockets.delete(socket);
+    try { socket.close(); } catch {}
+    if (p?.characterId) {
+      await this.broadcast({ type: "presence", action: "offline", player: {
+        characterId: p.characterId, displayName: p.displayName
+      }});
+    }
+  }
+
+  async webSocketError(socket) {
+    const p = socket.deserializeAttachment();
+    this.sockets.delete(socket);
+    if (p?.characterId) await this.broadcast({ type: "presence", action: "offline", player: {
+      characterId: p.characterId, displayName: p.displayName
+    }});
+  }
 }
 
 export default {
