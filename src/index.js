@@ -1760,7 +1760,85 @@ export class AurelithRealtime {
   }
 }
 
+async function runAurelithCron(env) {
+  const db = env.DB;
+  if (!db) throw new Error("D1 binding DB is missing in scheduled task.");
+  await db.batch([
+    db.prepare(`CREATE TABLE IF NOT EXISTS character_game_state (
+      character_id TEXT PRIMARY KEY, health INTEGER NOT NULL DEFAULT 100, wanted_level INTEGER NOT NULL DEFAULT 0,
+      activity_type TEXT, activity_started_at TEXT, activity_ends_at TEXT, activity_reward INTEGER NOT NULL DEFAULT 0,
+      last_crime_at TEXT, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS character_skills (
+      character_id TEXT NOT NULL, skill_key TEXT NOT NULL, xp INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(character_id,skill_key),
+      FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
+    )`)
+  ]);
+  const due = await db.prepare(`SELECT character_id,activity_type,activity_started_at,activity_ends_at,activity_reward
+    FROM character_game_state WHERE activity_type IS NOT NULL AND activity_ends_at IS NOT NULL
+    AND datetime(activity_ends_at)<=datetime('now') LIMIT 200`).all();
+  let settled = 0;
+  for (const state of due.results || []) {
+    const clear = await db.prepare(`UPDATE character_game_state SET activity_type=NULL,activity_started_at=NULL,
+      activity_ends_at=NULL,activity_reward=0,updated_at=CURRENT_TIMESTAMP
+      WHERE character_id=? AND activity_type=? AND activity_ends_at=?`)
+      .bind(state.character_id,state.activity_type,state.activity_ends_at).run();
+    if (!clear.meta?.changes) continue;
+    const duration = await db.prepare("SELECT CAST(MAX(1,(julianday(?)-julianday(?))*1440) AS INTEGER) AS minutes")
+      .bind(state.activity_ends_at,state.activity_started_at).first();
+    const minutes = Math.max(1,Number(duration?.minutes||60));
+    const reward = Math.max(0,Number(state.activity_reward||0));
+    await db.prepare("UPDATE activities SET status='completed',details=details || ' · selesai' WHERE character_id=? AND activity_type=? AND status='in_progress'")
+      .bind(state.character_id,state.activity_type).run();
+    if (state.activity_type === "rest") {
+      await db.prepare("UPDATE characters SET energy=MIN(100,energy+?),mood=MIN(100,mood+8),current_activity='Santai',updated_at=CURRENT_TIMESTAMP WHERE id=?")
+        .bind(Math.min(60,Math.ceil(minutes/10)),state.character_id).run();
+    } else if (state.activity_type === "side_job" || state.activity_type === "volunteer") {
+      const label = state.activity_type === "volunteer" ? "Kegiatan sukarela" : "Pekerjaan sampingan offline";
+      const energyCost = state.activity_type === "volunteer" ? 5 : 10;
+      await db.batch([
+        db.prepare("UPDATE characters SET money=money+?,energy=MAX(0,energy-?),mood=MIN(100,mood+?),current_activity=?,updated_at=CURRENT_TIMESTAMP WHERE id=?")
+          .bind(reward,energyCost,state.activity_type==="volunteer"?5:0,label+" selesai",state.character_id),
+        db.prepare("INSERT INTO wallet_transactions(id,character_id,transaction_type,amount,description) VALUES(?,?,'income',?,?)")
+          .bind(crypto.randomUUID(),state.character_id,reward,label+" selesai"),
+        db.prepare("INSERT INTO activities(id,character_id,activity_type,details,status) VALUES(?,?,?,?, 'completed')")
+          .bind(crypto.randomUUID(),state.character_id,state.activity_type,label+" selesai")
+      ]);
+    } else {
+      const skill = {training:"fitness",study:"knowledge",craft:"crafting"}[state.activity_type];
+      if (skill) {
+        const xp = Math.max(5,Math.round(minutes/5));
+        const label = {fitness:"Kebugaran",knowledge:"Pengetahuan",crafting:"Keterampilan"}[skill];
+        const energy = state.activity_type==="training"?Math.min(35,Math.ceil(minutes/4)):state.activity_type==="craft"?Math.min(20,Math.ceil(minutes/8)):Math.min(12,Math.ceil(minutes/12));
+        await db.batch([
+          db.prepare("INSERT INTO character_skills(character_id,skill_key,xp) VALUES(?,?,?) ON CONFLICT(character_id,skill_key) DO UPDATE SET xp=character_skills.xp+excluded.xp,updated_at=CURRENT_TIMESTAMP")
+            .bind(state.character_id,skill,xp),
+          db.prepare("UPDATE characters SET energy=MAX(0,energy-?),mood=MIN(100,mood+?),current_activity=?,updated_at=CURRENT_TIMESTAMP WHERE id=?")
+            .bind(energy,state.activity_type==="study"?4:2,label+" meningkat",state.character_id),
+          db.prepare("INSERT INTO activities(id,character_id,activity_type,details,status) VALUES(?,?,?,?,'completed')")
+            .bind(crypto.randomUUID(),state.character_id,state.activity_type,label+" meningkat +"+xp+" XP")
+        ]);
+      }
+    }
+    settled++;
+  }
+  // Persist NPC schedules even when no player opens the city page.
+  await db.prepare("CREATE TABLE IF NOT EXISTS city_npc_state(npc_key TEXT PRIMARY KEY,display_name TEXT NOT NULL,occupation TEXT NOT NULL,district TEXT NOT NULL,mood INTEGER NOT NULL DEFAULT 70,last_action TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+  const seed = [["maya","Maya","Barista","Distrik Pusat","Melayani pelanggan di kafe"],["bima","Bima","Kurir","Distrik Bisnis","Mengantar paket"],["sari","Sari","Dokter","Distrik Klinik","Memeriksa pasien"],["raka","Raka","Pedagang","Pasar Aurelith","Menata dagangan"],["nara","Nara","Pelajar","Taman Kota","Belajar di taman"],["dion","Dion","Mekanik","Distrik Industri","Memperbaiki kendaraan"],["lila","Lila","Seniman","Alun-alun","Melukis suasana kota"],["fajar","Fajar","Petugas keamanan","Distrik Pusat","Berkeliling menjaga kota"]];
+  await db.batch(seed.map(n=>db.prepare("INSERT OR IGNORE INTO city_npc_state(npc_key,display_name,occupation,district,last_action) VALUES(?,?,?,?,?)").bind(...n)));
+  const clock = await db.prepare("SELECT CAST(strftime('%H','now') AS INTEGER) AS hour").first();
+  const hour = Number(clock?.hour||0), slot = Math.min(4,Math.floor(hour/5));
+  const schedule = [["Melayani pelanggan di kafe","Menyiapkan stok di gudang","Istirahat setelah sif","Membeli makan di pasar","Menutup kafe"],["Mengantar paket ke distrik lain","Mengambil kiriman","Memperbaiki sepeda","Makan siang","Mengantar pesanan terakhir"],["Memeriksa pasien","Mengisi laporan klinik","Istirahat singkat","Menerima pasien","Menutup jadwal klinik"],["Menata dagangan","Membeli bahan pemasok","Melayani pembeli","Menghitung pemasukan","Menyiapkan pasar besok"],["Belajar di taman","Mengunjungi perpustakaan","Makan bersama teman","Mengerjakan tugas","Pulang ke rumah"],["Memperbaiki kendaraan","Mencari suku cadang","Melayani pelanggan","Membersihkan bengkel","Menutup bengkel"],["Melukis di alun-alun","Membeli perlengkapan seni","Memamerkan karya","Berbincang dengan warga","Pulang membawa kanvas"],["Berkeliling menjaga kota","Memeriksa distrik bisnis","Mengatur lalu lintas","Patroli pasar","Membuat laporan keamanan"]];
+  await db.batch(seed.map((n,i)=>db.prepare("UPDATE city_npc_state SET last_action=?,mood=MAX(35,MIN(100,mood+?)),updated_at=CURRENT_TIMESTAMP WHERE npc_key=?").bind(schedule[i][slot],((hour+i)%3)-1,n[0])));
+  console.log("Aurelith cron complete", {settledActivities:settled,npcs:seed.length});
+}
+
 export default {
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(runAurelithCron(env));
+  },
   async fetch(request, env) {
     const url = new URL(request.url);
 
