@@ -1612,6 +1612,10 @@ function drawDecoration(ctx,x,y,type,i) {
   if(type==="flower"){pixelRect(ctx,x,y,6,6,i%2?"#f5a6c2":"#fff0a6");pixelRect(ctx,x+2,y+5,3,7,"#4d9362");pixelRect(ctx,x-2,y+2,4,4,"#f7e6b7");}
   else if(type==="lamp"){pixelRect(ctx,x+4,y,5,19,"#8e664e");pixelRect(ctx,x,y-5,13,9,"#f5d987");pixelRect(ctx,x+3,y-3,7,4,"#fff3be");}
   else if(type==="mushroom"){pixelRect(ctx,x,y+5,12,10,"#f4d7a1");pixelRect(ctx,x-3,y,18,7,"#d77b7b");pixelRect(ctx,x+2,y+2,3,3,"#fff0c1");}
+  else if(type==="crystal"){pixelRect(ctx,x+5,y,9,18,"#7bc8df");pixelRect(ctx,x+1,y+6,7,11,"#a5e5ee");pixelRect(ctx,x+10,y+4,8,13,"#5ca9d0");}
+  else if(type==="tree"){pixelRect(ctx,x+8,y+12,7,17,"#95674d");pixelRect(ctx,x+1,y+1,22,17,"#4d965e");pixelRect(ctx,x+5,y-4,15,14,"#78b96a");}
+  else if(type==="bench"){pixelRect(ctx,x,y+5,25,5,"#b98051");pixelRect(ctx,x+2,y+1,21,4,"#d5a16b");pixelRect(ctx,x+3,y+10,4,9,"#80553e");pixelRect(ctx,x+19,y+10,4,9,"#80553e");}
+  else if(type==="pond"){pixelRect(ctx,x,y+4,25,15,"#589fb5");pixelRect(ctx,x+4,y+7,15,5,"#a7e3df");pixelRect(ctx,x+16,y+12,6,3,"#d6f2df");}
   else {pixelRect(ctx,x,y,15,15,"#dca0bf");pixelRect(ctx,x+4,y+4,7,7,"#f7d9e8");}
 }
 function renderUniverse() {
