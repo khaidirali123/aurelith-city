@@ -982,59 +982,9 @@ async function handleApi(request, env) {
       }, 201);
     }
 
-    if (path === "/api/game/crime" && method === "POST") {
-      const body = await readBody(request);
-      const crimeType = String(body?.crimeType || "");
-      const crimes = {
-        pickpocket: { label: "Mencopet", chance: 0.58, min: 80, max: 220, fine: 100 },
-        shoplift: { label: "Mencuri barang toko", chance: 0.48, min: 140, max: 360, fine: 180 },
-        heist: { label: "Perampokan berisiko", chance: 0.30, min: 350, max: 800, fine: 400 }
-      };
-      const crime = crimes[crimeType];
-      if (!crime) return json({ error: "Aksi kriminal tidak dikenal." }, 400);
-      const state = await db.prepare("SELECT * FROM character_game_state WHERE character_id = ?").bind(session.character_id).first();
-      if (Number(state?.wanted_level || 0) >= 5) return json({ error: "Tingkat buronan maksimal. Tunggu sampai buronan berkurang sebelum mencoba lagi." }, 429);
-      const recent = await db.prepare(`
-        SELECT id FROM activities WHERE character_id = ? AND activity_type = 'crime'
-          AND started_at > datetime('now', '-10 minutes') LIMIT 1
-      `).bind(session.character_id).first();
-      if (recent) return json({ error: "Kamu perlu menunggu 10 menit sebelum mencoba aksi kriminal lagi." }, 429);
-      if (Number(session.energy) < 15) return json({ error: "Energi minimal 15 diperlukan." }, 400);
-
-      const success = Math.random() < crime.chance;
-      const amount = success
-        ? Math.floor(crime.min + Math.random() * (crime.max - crime.min + 1))
-        : Math.min(Number(session.money) || 0, crime.fine);
-      const wanted = Math.min(5, Math.max(0, Number(state?.wanted_level || 0) + (success ? 1 : 2)));
-      const details = success
-        ? crime.label + " berhasil; memperoleh " + amount + " uang virtual"
-        : crime.label + " gagal; denda " + amount + " uang virtual";
-      const statements = [
-        db.prepare(`UPDATE characters SET money = MAX(0, money + ?), energy = MAX(0, energy - 15),
-          mood = MAX(0, mood - 5), current_activity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
-          .bind(success ? amount : -amount, success ? "Melakukan aksi kriminal" : "Tertangkap saat beraksi", session.character_id),
-        db.prepare(`UPDATE character_game_state SET wanted_level = ?, last_crime_at = CURRENT_TIMESTAMP,
-          updated_at = CURRENT_TIMESTAMP WHERE character_id = ?`).bind(wanted, session.character_id),
-        db.prepare(`INSERT INTO activities (id, character_id, activity_type, details, status)
-          VALUES (?, ?, 'crime', ?, ?)`).bind(crypto.randomUUID(), session.character_id, details, success ? "completed" : "failed")
-      ];
-      if (amount > 0) {
-        statements.push(db.prepare(`INSERT INTO wallet_transactions
-          (id, character_id, transaction_type, amount, description)
-          VALUES (?, ?, ?, ?, ?)`).bind(crypto.randomUUID(), session.character_id,
-          success ? "income" : "expense", amount, success ? "Hasil kriminal: " + crime.label : "Denda kriminal: " + crime.label));
-      }
-      await db.batch(statements);
-      const updated = await db.prepare("SELECT money, energy, mood, current_activity FROM characters WHERE id = ?").bind(session.character_id).first();
-      return json({
-        success: true, outcome: success ? "success" : "caught", amount, wantedLevel: wanted,
-        message: success
-          ? "Berhasil: " + details + ". Tingkat buronan meningkat."
-          : "Gagal: " + details + ". Tingkat buronan meningkat lebih besar.",
-        character: { ...updated }
-      });
+    if (path === "/api/game/crime") {
+      return json({ error: "Sistem kriminalitas sudah tidak digunakan di Aurelith City." }, 410);
     }
-
 
     if (path === "/api/game/shop" && method === "GET") {
       return json({
@@ -1844,9 +1794,6 @@ async function runAurelithCron(env) {
 }
 
 export default {
-  async scheduled(controller, env, ctx) {
-    ctx.waitUntil(runAurelithCron(env));
-  },
   async fetch(request, env) {
     const url = new URL(request.url);
 
