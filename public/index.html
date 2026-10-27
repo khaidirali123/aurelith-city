@@ -2025,12 +2025,34 @@ $("chatForm").addEventListener("submit", async event => {
 
 /* My Little Universe-inspired island layer. Personal decorations/pet progress are browser-local in this first visual phase. */
 let universeDecorMode = false;
+let viewingSharedWorld = false;
 let universeData = { decorations: [], hunger: 75, happiness: 85, care: 0, play: 0, xp: 0 };
 function universeStorageKey() {
   return "aurelith_universe_" + ((currentUser && currentUser.id) || "guest");
 }
 async function loadUniverseData() {
-  // Tampilkan salinan lokal dahulu supaya pulau terasa cepat dibuka.
+  const sharedName = new URLSearchParams(location.search).get("world");
+  viewingSharedWorld = Boolean(sharedName && (!currentUser || sharedName.toLowerCase() !== String(currentUser.username || "").toLowerCase()));
+  if (viewingSharedWorld) {
+    try {
+      const response = await fetch("/api/island/world?username=" + encodeURIComponent(sharedName), { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Dunia tidak ditemukan.");
+      universeData = Object.assign({ decorations: [], hunger: 75, happiness: 85, care: 0, play: 0, xp: 0 }, result.island || {});
+      renderUniverse();
+      universeMessage("Kamu sedang mengunjungi pulau milik " + (result.owner?.displayName || sharedName) + ". Mode kunjungan: pulau ini hanya bisa dilihat.");
+      const decorButton = $("universeDecorButton");
+      if (decorButton) decorButton.disabled = true;
+      document.querySelectorAll(".universe-actions button").forEach(button => { if (button.id !== "universeDecorButton") button.disabled = true; });
+      return;
+    } catch (error) {
+      universeMessage("Tidak bisa membuka dunia teman: " + error.message);
+      return;
+    }
+  }
+  const decorButton = $("universeDecorButton");
+  if (decorButton) decorButton.disabled = false;
+  document.querySelectorAll(".universe-actions button").forEach(button => { button.disabled = false; });
   try {
     const saved = JSON.parse(localStorage.getItem(universeStorageKey()) || "null");
     if (saved && typeof saved === "object") universeData = Object.assign(universeData, saved);
@@ -2052,6 +2074,7 @@ async function loadUniverseData() {
 }
 let universeSaveTimer = null;
 function saveUniverseData() {
+  if (viewingSharedWorld) return;
   try { localStorage.setItem(universeStorageKey(), JSON.stringify(universeData)); } catch {}
   if (!token || !currentUser) return;
   clearTimeout(universeSaveTimer);
@@ -2142,6 +2165,14 @@ async function shareUniverse(){
 }
 
 async function initialize() {
+  const sharedName = new URLSearchParams(location.search).get("world");
+  if (sharedName && !token) {
+    $("authView").classList.add("hidden");
+    $("cityView").classList.remove("hidden");
+    document.querySelectorAll(".tabs button").forEach(button => { button.style.display = button.dataset.tab === "universeTab" ? "" : "none"; });
+    document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.toggle("active", panel.id === "universeTab"));
+    loadUniverseData();
+  }
   try {
     const response = await fetch("/api/health", { cache:"no-store" });
     const health = await response.json();
