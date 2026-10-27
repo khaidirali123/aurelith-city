@@ -484,12 +484,20 @@ async function handleApi(request, env) {
   // Needs decay over elapsed time; fulfill them with food, hygiene, or rest.
   if (path === "/api/needs" && (method === "GET" || method === "POST")) {
     const session = await getSession(request,db); if (!session) return json({error:"Silakan login kembali."},401);
-    await db.prepare("CREATE TABLE IF NOT EXISTS character_needs(character_id TEXT PRIMARY KEY,hunger INTEGER NOT NULL DEFAULT 100,hygiene INTEGER NOT NULL DEFAULT 100,rest INTEGER NOT NULL DEFAULT 100,last_tick_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE)").run();
+    await db.prepare("CREATE TABLE IF NOT EXISTS character_needs(character_id TEXT PRIMARY KEY,hunger INTEGER NOT NULL DEFAULT 100,hygiene INTEGER NOT NULL DEFAULT 100,rest INTEGER NOT NULL DEFAULT 100,last_tick_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,hunger_tick_at TEXT,hygiene_tick_at TEXT,rest_tick_at TEXT,FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE)").run();
+    const columns = await db.prepare("PRAGMA table_info(character_needs)").all();
+    const columnNames = new Set((columns.results||[]).map(column=>column.name));
+    for (const column of ["hunger_tick_at","hygiene_tick_at","rest_tick_at"]) {
+      if (!columnNames.has(column)) await db.prepare("ALTER TABLE character_needs ADD COLUMN "+column+" TEXT").run();
+    }
     await db.prepare("INSERT OR IGNORE INTO character_needs(character_id) VALUES(?)").bind(session.character_id).run();
+    await db.prepare("UPDATE character_needs SET hunger_tick_at=COALESCE(hunger_tick_at,last_tick_at),hygiene_tick_at=COALESCE(hygiene_tick_at,last_tick_at),rest_tick_at=COALESCE(rest_tick_at,last_tick_at) WHERE character_id=?").bind(session.character_id).run();
     const before = await db.prepare("SELECT * FROM character_needs WHERE character_id=?").bind(session.character_id).first();
-    const elapsed = await db.prepare("SELECT CAST(MAX(0,(julianday('now')-julianday(?))*1440) AS INTEGER) AS minutes").bind(before.last_tick_at).first();
-    const minutes = Math.min(1440,Number(elapsed?.minutes||0));
-    await db.prepare("UPDATE character_needs SET hunger=MAX(0,hunger-?),hygiene=MAX(0,hygiene-?),rest=MAX(0,rest-?),last_tick_at=CURRENT_TIMESTAMP WHERE character_id=?").bind(Math.floor(minutes/10),Math.floor(minutes/20),Math.floor(minutes/15),session.character_id).run();
+    const elapsed = await db.prepare("SELECT CAST(MAX(0,(julianday(?)-julianday(hunger_tick_at))*1440) AS INTEGER) AS hunger_minutes,CAST(MAX(0,(julianday(?)-julianday(hygiene_tick_at))*1440) AS INTEGER) AS hygiene_minutes,CAST(MAX(0,(julianday(?)-julianday(rest_tick_at))*1440) AS INTEGER) AS rest_minutes FROM character_needs WHERE character_id=?").bind(before.hunger_tick_at,before.hygiene_tick_at,before.rest_tick_at,session.character_id).first();
+    const hungerSteps=Math.min(1440,Math.floor(Number(elapsed?.hunger_minutes||0)/10));
+    const hygieneSteps=Math.min(720,Math.floor(Number(elapsed?.hygiene_minutes||0)/20));
+    const restSteps=Math.min(960,Math.floor(Number(elapsed?.rest_minutes||0)/15));
+    await db.prepare("UPDATE character_needs SET hunger=MAX(0,hunger-?),hunger_tick_at=datetime(hunger_tick_at,'+' || ? || ' minutes'),hygiene=MAX(0,hygiene-?),hygiene_tick_at=datetime(hygiene_tick_at,'+' || ? || ' minutes'),rest=MAX(0,rest-?),rest_tick_at=datetime(rest_tick_at,'+' || ? || ' minutes'),last_tick_at=CURRENT_TIMESTAMP WHERE character_id=?").bind(hungerSteps,hungerSteps*10,hygieneSteps,hygieneSteps*20,restSteps,restSteps*15,session.character_id).run();
     if (method === "POST") {
       const body = await readBody(request), action = String(body?.action||"");
       const options = {eat:{field:"hunger",amount:40,cost:50,label:"Makan"},shower:{field:"hygiene",amount:45,cost:20,label:"Mandi"},sleep:{field:"rest",amount:55,cost:0,label:"Tidur singkat"}};
