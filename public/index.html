@@ -1529,7 +1529,7 @@ function connectRealtime() {
   if (!token || realtimeSocket?.readyState === WebSocket.OPEN || realtimeSocket?.readyState === WebSocket.CONNECTING) return;
   realtimeManualClose = false;
   const scheme = location.protocol === "https:" ? "wss:" : "ws:";
-  const socket = new WebSocket(scheme + "//" + location.host + "/api/realtime?token=" + encodeURIComponent(token));
+  const socket = new WebSocket(scheme + "//" + location.host + "/api/realtime", ["aurelith-v1", "bearer." + token]);
   realtimeSocket = socket;
   socket.addEventListener("open", () => {
     realtimeReconnectDelay = 1000; setStatus("WebSocket realtime aktif");
