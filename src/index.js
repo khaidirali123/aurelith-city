@@ -217,8 +217,10 @@ async function handleApi(request, env) {
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return json({ error: "WebSocket upgrade diperlukan." }, 426);
     }
-    // Browser WebSocket APIs cannot attach Authorization headers; accept the short-lived app session token via query.
-    const wsToken = url.searchParams.get("token") || "";
+    // Authenticate with a WebSocket subprotocol instead of a URL query, keeping the session token out of request URLs.
+    const offeredProtocols = (request.headers.get("Sec-WebSocket-Protocol") || "").split(",").map(v => v.trim());
+    const authProtocol = offeredProtocols.find(v => v.startsWith("bearer."));
+    const wsToken = authProtocol ? authProtocol.slice(7) : "";
     if (!wsToken || wsToken.length > 200) return json({ error: "Sesi WebSocket tidak valid." }, 401);
     const sessionRequest = new Request("https://session.internal/", {
       headers: { "Authorization": "Bearer " + wsToken }
@@ -1337,7 +1339,11 @@ export class AurelithRealtime {
       action: "online",
       player: this.publicPlayer(server)
     }, server);
-    return new Response(null, { status: 101, webSocket: client });
+    return new Response(null, {
+      status: 101,
+      webSocket: client,
+      headers: { "Sec-WebSocket-Protocol": "aurelith-v1" }
+    });
   }
 
   async webSocketMessage(socket, message) {
