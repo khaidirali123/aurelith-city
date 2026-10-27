@@ -2029,15 +2029,40 @@ let universeData = { decorations: [], hunger: 75, happiness: 85, care: 0, play: 
 function universeStorageKey() {
   return "aurelith_universe_" + ((currentUser && currentUser.id) || "guest");
 }
-function loadUniverseData() {
+async function loadUniverseData() {
+  // Tampilkan salinan lokal dahulu supaya pulau terasa cepat dibuka.
   try {
     const saved = JSON.parse(localStorage.getItem(universeStorageKey()) || "null");
     if (saved && typeof saved === "object") universeData = Object.assign(universeData, saved);
   } catch {}
   renderUniverse();
+  if (!token || !currentUser) return;
+  try {
+    const result = await api("/api/island");
+    if (result.island && typeof result.island === "object") {
+      universeData = Object.assign({ decorations: [], hunger: 75, happiness: 85, care: 0, play: 0, xp: 0 }, result.island);
+      try { localStorage.setItem(universeStorageKey(), JSON.stringify(universeData)); } catch {}
+      renderUniverse();
+    } else {
+      saveUniverseData();
+    }
+  } catch (error) {
+    universeMessage("Pulau dimuat dari perangkat. Sinkronisasi server belum tersedia: " + error.message);
+  }
 }
+let universeSaveTimer = null;
 function saveUniverseData() {
   try { localStorage.setItem(universeStorageKey(), JSON.stringify(universeData)); } catch {}
+  if (!token || !currentUser) return;
+  clearTimeout(universeSaveTimer);
+  universeSaveTimer = setTimeout(async () => {
+    try {
+      await api("/api/island", { method: "POST", body: JSON.stringify({ island: universeData }) });
+      universeMessage("Perubahan pulau tersimpan ke akunmu. 🌱");
+    } catch (error) {
+      universeMessage("Tersimpan di perangkat, tetapi belum tersinkron ke server: " + error.message);
+    }
+  }, 700);
 }
 function pixelRect(ctx,x,y,w,h,color) { ctx.fillStyle=color; ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h)); }
 function drawUniverse() {
