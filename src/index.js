@@ -417,6 +417,101 @@ async function handleApi(request, env) {
     return json({ jobs: result.results || [] });
   }
 
+  // Player-owned businesses: create, upgrade, and collect revenue.
+  if (path === "/api/business" && (method === "GET" || method === "POST")) {
+    const session = await getSession(request, db);
+    if (!session) return json({ error: "Silakan login kembali." }, 401);
+    await db.prepare("CREATE TABLE IF NOT EXISTS player_businesses (id TEXT PRIMARY KEY, owner_character_id TEXT NOT NULL, name TEXT NOT NULL, business_type TEXT NOT NULL, level INTEGER NOT NULL DEFAULT 1, invested INTEGER NOT NULL, last_collect_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(owner_character_id) REFERENCES characters(id) ON DELETE CASCADE)").run();
+    if (method === "POST") {
+      const body = await readBody(request), action = String(body?.action || "");
+      if (action === "create") {
+        const type = String(body?.businessType || "");
+        const options = { cafe: { name:"Kafe Warga", cost:5000 }, shop: { name:"Toko Kelontong", cost:4000 }, workshop: { name:"Bengkel Kerajinan", cost:6500 } };
+        const opt = options[type]; if (!opt) return json({error:"Jenis usaha tidak valid."},400);
+        if (Number(session.money) < opt.cost) return json({error:"Modal tidak cukup. Dibutuhkan "+opt.cost+" uang virtual."},400);
+        const id = crypto.randomUUID();
+        await db.batch([
+          db.prepare("UPDATE characters SET money=money-?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(opt.cost,session.character_id),
+          db.prepare("INSERT INTO player_businesses(id,owner_character_id,name,business_type,level,invested) VALUES(?,?,?,?,1,?)").bind(id,session.character_id,opt.name,type,opt.cost),
+          db.prepare("INSERT INTO wallet_transactions(id,character_id,transaction_type,amount,description) VALUES(?,?,'expense',?,?)").bind(crypto.randomUUID(),session.character_id,opt.cost,"Modal usaha: "+opt.name),
+          db.prepare("INSERT INTO activities(id,character_id,activity_type,details,status) VALUES(?,?,'business',?,'completed')").bind(crypto.randomUUID(),session.character_id,"Mendirikan "+opt.name)
+        ]);
+        return json({success:true,message:opt.name+" berhasil didirikan.",businessId:id,cost:opt.cost},201);
+      }
+      const id = String(body?.businessId || "");
+      const business = await db.prepare("SELECT * FROM player_businesses WHERE id=? AND owner_character_id=?").bind(id,session.character_id).first();
+      if (!business) return json({error:"Bisnis tidak ditemukan."},404);
+      if (action === "upgrade") {
+        const cost = 2500 * Number(business.level);
+        if (Number(session.money) < cost) return json({error:"Saldo tidak cukup untuk peningkatan."},400);
+        await db.batch([
+          db.prepare("UPDATE characters SET money=money-?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(cost,session.character_id),
+          db.prepare("UPDATE player_businesses SET level=level+1,invested=invested+? WHERE id=?").bind(cost,id),
+          db.prepare("INSERT INTO wallet_transactions(id,character_id,transaction_type,amount,description) VALUES(?,?,'expense',?,?)").bind(crypto.randomUUID(),session.character_id,cost,"Upgrade bisnis "+business.name)
+        ]);
+        return json({success:true,message:"Bisnis naik level.",cost});
+      }
+      if (action === "collect") {
+        const elapsed = await db.prepare("SELECT CAST(MAX(0,(julianday('now')-julianday(?))*1440) AS INTEGER) AS minutes").bind(business.last_collect_at).first();
+        const minutes = Math.max(0,Math.min(10080,Number(elapsed?.minutes||0)));
+        const rates = {cafe:100,shop:80,workshop:130};
+        const gross = Math.floor(minutes/30)*(rates[business.business_type]||80)*Number(business.level);
+        if (gross < 1) return json({error:"Belum ada pendapatan. Kembali setelah 30 menit."},409);
+        const tax = Math.floor(gross*0.1), net = gross-tax;
+        await db.batch([
+          db.prepare("UPDATE player_businesses SET last_collect_at=CURRENT_TIMESTAMP WHERE id=?").bind(id),
+          db.prepare("UPDATE characters SET money=money+?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(net,session.character_id),
+          db.prepare("INSERT INTO wallet_transactions(id,character_id,transaction_type,amount,description) VALUES(?,?,'income',?,?)").bind(crypto.randomUUID(),session.character_id,net,"Pendapatan bisnis "+business.name+" setelah pajak")
+        ]);
+        return json({success:true,gross,tax,net,message:"Pendapatan bisnis berhasil diklaim."});
+      }
+      return json({error:"Aksi bisnis tidak dikenal."},400);
+    }
+    const result = await db.prepare("SELECT id,name,business_type,level,invested,last_collect_at,CAST(MAX(0,(julianday('now')-julianday(last_collect_at))*1440) AS INTEGER) AS minutes_accrued FROM player_businesses WHERE owner_character_id=? ORDER BY created_at DESC").bind(session.character_id).all();
+    const rates = {cafe:100,shop:80,workshop:130};
+    return json({success:true,businesses:(result.results||[]).map(x=>({...x,estimated_income:Math.floor(Number(x.minutes_accrued||0)/30)*(rates[x.business_type]||80)*Number(x.level)}))});
+  }
+
+  // Needs decay over elapsed time; fulfill them with food, hygiene, or rest.
+  if (path === "/api/needs" && (method === "GET" || method === "POST")) {
+    const session = await getSession(request,db); if (!session) return json({error:"Silakan login kembali."},401);
+    await db.prepare("CREATE TABLE IF NOT EXISTS character_needs(character_id TEXT PRIMARY KEY,hunger INTEGER NOT NULL DEFAULT 100,hygiene INTEGER NOT NULL DEFAULT 100,rest INTEGER NOT NULL DEFAULT 100,last_tick_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE)").run();
+    await db.prepare("INSERT OR IGNORE INTO character_needs(character_id) VALUES(?)").bind(session.character_id).run();
+    const before = await db.prepare("SELECT * FROM character_needs WHERE character_id=?").bind(session.character_id).first();
+    const elapsed = await db.prepare("SELECT CAST(MAX(0,(julianday('now')-julianday(?))*1440) AS INTEGER) AS minutes").bind(before.last_tick_at).first();
+    const minutes = Math.min(1440,Number(elapsed?.minutes||0));
+    await db.prepare("UPDATE character_needs SET hunger=MAX(0,hunger-?),hygiene=MAX(0,hygiene-?),rest=MAX(0,rest-?),last_tick_at=CURRENT_TIMESTAMP WHERE character_id=?").bind(Math.floor(minutes/10),Math.floor(minutes/20),Math.floor(minutes/15),session.character_id).run();
+    if (method === "POST") {
+      const body = await readBody(request), action = String(body?.action||"");
+      const options = {eat:{field:"hunger",amount:40,cost:50,label:"Makan"},shower:{field:"hygiene",amount:45,cost:20,label:"Mandi"},sleep:{field:"rest",amount:55,cost:0,label:"Tidur singkat"}};
+      const opt = options[action]; if (!opt) return json({error:"Aksi kebutuhan tidak valid."},400);
+      const wallet = await db.prepare("SELECT money FROM characters WHERE id=?").bind(session.character_id).first();
+      if (Number(wallet?.money||0)<opt.cost) return json({error:"Uang tidak cukup."},400);
+      await db.batch([
+        db.prepare("UPDATE characters SET money=money-?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(opt.cost,session.character_id),
+        db.prepare("UPDATE character_needs SET "+opt.field+"=MIN(100,"+opt.field+"+?),last_tick_at=CURRENT_TIMESTAMP WHERE character_id=?").bind(opt.amount,session.character_id),
+        ...(opt.cost ? [db.prepare("INSERT INTO wallet_transactions(id,character_id,transaction_type,amount,description) VALUES(?,?,'expense',?,?)").bind(crypto.randomUUID(),session.character_id,opt.cost,opt.label)] : [])
+      ]);
+      return json({success:true,message:opt.label+" selesai.",needs:await db.prepare("SELECT hunger,hygiene,rest FROM character_needs WHERE character_id=?").bind(session.character_id).first()});
+    }
+    const needs = await db.prepare("SELECT hunger,hygiene,rest FROM character_needs WHERE character_id=?").bind(session.character_id).first();
+    return json({success:true,needs,penalties:[needs.hunger,needs.hygiene,needs.rest].filter(n=>n<20).length});
+  }
+
+  // NPCs follow a time-of-day routine and persist their mood and latest action.
+  if (path === "/api/city/state" && method === "GET") {
+    const session = await getSession(request,db); if (!session) return json({error:"Silakan login kembali."},401);
+    await db.prepare("CREATE TABLE IF NOT EXISTS city_npc_state(npc_key TEXT PRIMARY KEY,display_name TEXT NOT NULL,occupation TEXT NOT NULL,district TEXT NOT NULL,mood INTEGER NOT NULL DEFAULT 70,last_action TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+    const seed = [["maya","Maya","Barista","Distrik Pusat","Melayani pelanggan di kafe"],["bima","Bima","Kurir","Distrik Bisnis","Mengantar paket"],["sari","Sari","Dokter","Distrik Klinik","Memeriksa pasien"],["raka","Raka","Pedagang","Pasar Aurelith","Menata dagangan"],["nara","Nara","Pelajar","Taman Kota","Belajar di taman"],["dion","Dion","Mekanik","Distrik Industri","Memperbaiki kendaraan"],["lila","Lila","Seniman","Alun-alun","Melukis suasana kota"],["fajar","Fajar","Petugas keamanan","Distrik Pusat","Berkeliling menjaga kota"]];
+    await db.batch(seed.map(n=>db.prepare("INSERT OR IGNORE INTO city_npc_state(npc_key,display_name,occupation,district,last_action) VALUES(?,?,?,?,?)").bind(...n)));
+    const clock = await db.prepare("SELECT CAST(strftime('%H','now') AS INTEGER) AS hour,CAST(strftime('%M','now') AS INTEGER) AS minute").first();
+    const hour=Number(clock?.hour||0), slot=Math.min(4,Math.floor(hour/5));
+    const schedules=[["Melayani pelanggan di kafe","Menyiapkan stok di gudang","Istirahat setelah sif","Membeli makan di pasar","Menutup kafe"],["Mengantar paket ke distrik lain","Mengambil kiriman","Memperbaiki sepeda","Makan siang","Mengantar pesanan terakhir"],["Memeriksa pasien","Mengisi laporan klinik","Istirahat singkat","Menerima pasien","Menutup jadwal klinik"],["Menata dagangan","Membeli bahan pemasok","Melayani pembeli","Menghitung pemasukan","Menyiapkan pasar besok"],["Belajar di taman","Mengunjungi perpustakaan","Makan bersama teman","Mengerjakan tugas","Pulang ke rumah"],["Memperbaiki kendaraan","Mencari suku cadang","Melayani pelanggan","Membersihkan bengkel","Menutup bengkel"],["Melukis di alun-alun","Membeli perlengkapan seni","Memamerkan karya","Berbincang dengan warga","Pulang membawa kanvas"],["Berkeliling menjaga kota","Memeriksa distrik bisnis","Mengatur lalu lintas","Patroli pasar","Membuat laporan keamanan"]];
+    await db.batch(seed.map((n,i)=>db.prepare("UPDATE city_npc_state SET last_action=?,mood=MAX(35,MIN(100,mood+?)),updated_at=CURRENT_TIMESTAMP WHERE npc_key=?").bind(schedules[i][slot],((hour+i)%3)-1,n[0])));
+    const result = await db.prepare("SELECT npc_key,display_name,occupation,district,mood,last_action,updated_at FROM city_npc_state ORDER BY npc_key").all();
+    return json({success:true,cityTime:String(hour).padStart(2,"0")+":"+String(clock?.minute||0).padStart(2,"0"),npcs:result.results||[]});
+  }
+
   // PROFIL AKUN DAN KARAKTER
   if (path === "/api/me" && method === "GET") {
     const session = await getSession(request, db);
