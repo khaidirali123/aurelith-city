@@ -1882,14 +1882,7 @@ async function initialize() {
 
 setAuthMode("login");
 initialize();
-// WebSocket pushes movement, presence, and chat; only refresh friend directory occasionally.
-setInterval(() => {
-  if (!token || socialPollBusy) return;
-  const socialPanel = $("socialTab");
-  if (socialPanel && socialPanel.classList.contains("active")) {
-    api("/api/social/friends").then(data => renderFriends(data.friends || [])).catch(() => {});
-  }
-}, 30000);
+// All live player interactions are pushed by WebSocket; no periodic player/social polling.
 </script>
 </body>
 </html>
