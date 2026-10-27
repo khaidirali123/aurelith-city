@@ -1633,6 +1633,19 @@ function drawUniverse() {
   // flowers and pond
   pixelRect(ctx,555,290,70,32,"#6fb6c5");pixelRect(ctx,565,296,42,5,"#b6e5df");pixelRect(ctx,590,310,24,5,"#4b9aaa");
   [[300,280],[320,300],[535,340],[650,325],[290,350],[605,245],[520,220]].forEach((p,i)=>{pixelRect(ctx,p[0],p[1],5,5,i%2?"#f4a7b8":"#fff0a6");pixelRect(ctx,p[0]+5,p[1]+4,4,4,"#f7fff0")});
+  // Garden growth is calculated from timestamps, including time spent offline.
+  (universeData.garden||[]).forEach((plot,i)=>{
+    const gx=285+i*62, gy=337;
+    pixelRect(ctx,gx,gy,42,24,"#93664a");
+    pixelRect(ctx,gx+3,gy+3,36,18,"#b98a5e");
+    if(plot&&plot.plantedAt){
+      const ready=Date.now()-Number(plot.plantedAt)>=60000;
+      pixelRect(ctx,gx+17,gy-7,7,ready?18:11,"#438b54");
+      pixelRect(ctx,gx+9,gy-10,9,7,ready?"#f0b7c9":"#78bb65");
+      pixelRect(ctx,gx+23,gy-13,9,8,ready?"#f6d878":"#78bb65");
+      if(ready)pixelRect(ctx,gx+15,gy-16,12,4,"#f6d878");
+    }
+  });
   // decorations placed by player
   (universeData.decorations||[]).forEach((d,i)=>drawDecoration(ctx,d.x,d.y,d.type||"flower",i));
   // avatar and pet
@@ -1702,6 +1715,13 @@ function renderIslandShop(){
     btn.onclick=()=>buyIslandItem(item.type);row.append(info,btn);el.appendChild(row);
   });
 }
+// UI-only refresh: no network calls or background server workload.
+setInterval(()=>{
+  if(!viewingSharedWorld && $("gardenPlots")) {
+    renderGarden();
+    drawUniverse();
+  }
+},5000);
 function buySeeds(){
   if(viewingSharedWorld)return;
   if(Number(universeData.coins||0)<5){gardenMessage("Kamu membutuhkan 5 koin untuk membeli 3 benih.");return;}
