@@ -1617,7 +1617,9 @@ function drawDecoration(ctx,x,y,type,i) {
 function renderUniverse() {
   drawUniverse();
   const el=(id)=>$(id);
-  if(el("universeCoins"))el("universeCoins").textContent=String((universeData.decorations||[]).length*5);
+  if(el("universeCoins"))el("universeCoins").textContent=String(Number(universeData.coins ?? 20));
+  if(el("gardenPlots"))renderGarden();
+  if(el("islandShopItems"))renderIslandShop();
   if(el("universeLevel"))el("universeLevel").textContent="Level "+(1+Math.floor((universeData.xp||0)/5));
   if(el("universeDecorCount"))el("universeDecorCount").textContent=(universeData.decorations||[]).length;
   if(el("universeCareCount"))el("universeCareCount").textContent=universeData.care||0;
@@ -1626,10 +1628,73 @@ function renderUniverse() {
   if(el("universePetMood"))el("universePetMood").textContent=universeData.happiness>70?"Sangat senang":universeData.happiness>35?"Senang":"Ingin bermain";
 }
 function universeMessage(text){const el=$("universeMessage");if(el)el.textContent=text;}
-function universeFeedPet(){universeData.hunger=Math.min(100,universeData.hunger+22);universeData.happiness=Math.min(100,universeData.happiness+4);universeData.care++;universeData.xp++;saveUniverseData();renderUniverse();universeMessage("Pip memakan camilan dengan lahap! Kamu mendapat pengalaman.");}
-function universePlayPet(){universeData.happiness=Math.min(100,universeData.happiness+18);universeData.hunger=Math.max(0,universeData.hunger-7);universeData.play++;universeData.xp++;saveUniverseData();renderUniverse();universeMessage("Pip bermain bersamamu. Persahabatan kalian semakin kuat!");}
-function toggleUniverseDecor(){universeDecorMode=!universeDecorMode;const b=$("universeDecorButton");if(b)b.textContent="🌼 Mode dekorasi: "+(universeDecorMode?"aktif":"mati");universeMessage(universeDecorMode?"Mode dekorasi aktif. Ketuk area rumput untuk menaruh bunga, lampu, atau jamur.":"Mode dekorasi dimatikan.");}
-(function attachUniverseCanvas(){const canvas=$("universeCanvas");if(!canvas)return;canvas.addEventListener("click",function(e){if(!universeDecorMode){universeMessage("Aktifkan mode dekorasi untuk menambahkan benda ke pulau.");return;}const r=canvas.getBoundingClientRect();const x=Math.round((e.clientX-r.left)*canvas.width/r.width);const y=Math.round((e.clientY-r.top)*canvas.height/r.height);if(x<150||x>810||y<190||y>390){universeMessage("Pilih area pulau yang berumput untuk menaruh dekorasi.");return;}const types=["flower","lamp","mushroom"];universeData.decorations=universeData.decorations||[];universeData.decorations.push({x:x,y:y,type:types[universeData.decorations.length%types.length]});universeData.xp=(universeData.xp||0)+1;saveUniverseData();renderUniverse();universeMessage("Dekorasi ditambahkan! Pulau kecilmu semakin unik.");});})();
+function gardenMessage(text){const el=$("gardenMessage");if(el)el.textContent=text;}
+const ISLAND_SHOP = [
+  {type:"flower",name:"Bunga warna-warni",price:4,emoji:"🌼"},
+  {type:"lamp",name:"Lampu taman",price:8,emoji:"🏮"},
+  {type:"mushroom",name:"Jamur mungil",price:6,emoji:"🍄"},
+  {type:"crystal",name:"Kristal hias",price:12,emoji:"💎"},
+  {type:"tree",name:"Pohon kecil",price:10,emoji:"🌳"},
+  {type:"bench",name:"Bangku kayu",price:9,emoji:"🪑"},
+  {type:"pond",name:"Kolam mini",price:15,emoji:"🪷"}
+];
+function renderGarden(){
+  const el=$("gardenPlots");if(!el)return;
+  const garden=universeData.garden||[];el.innerHTML="";
+  for(let i=0;i<3;i++){
+    const plot=garden[i],ready=Boolean(plot&&plot.plantedAt&&Date.now()-Number(plot.plantedAt)>=60000);
+    const card=document.createElement("div");card.className="garden-plot-card";
+    const title=document.createElement("strong");title.textContent="Petak "+(i+1);card.appendChild(title);
+    const detail=document.createElement("p");detail.className="universe-note";detail.textContent=!plot||!plot.plantedAt?"Tanah kosong":ready?"🌻 Siap dipanen!":"🌱 Sedang tumbuh";card.appendChild(detail);
+    el.appendChild(card);
+  }
+  const seeds=document.createElement("p");seeds.className="universe-note";seeds.textContent="Benih tersedia: "+Number(universeData.seeds||0);el.appendChild(seeds);
+}
+function renderIslandShop(){
+  const el=$("islandShopItems");if(!el)return;el.innerHTML="";
+  ISLAND_SHOP.forEach(item=>{
+    const row=document.createElement("div");row.className="garden-shop-row";
+    const info=document.createElement("div"),name=document.createElement("strong"),meta=document.createElement("p");
+    name.textContent=item.emoji+" "+item.name;meta.className="universe-note";
+    meta.textContent=item.price+" koin · dimiliki "+Number((universeData.inventory||{})[item.type]||0);
+    info.append(name,meta);
+    const btn=document.createElement("button");btn.className="secondary";btn.textContent="Beli";
+    btn.disabled=viewingSharedWorld||Number(universeData.coins||0)<item.price;
+    btn.onclick=()=>buyIslandItem(item.type);row.append(info,btn);el.appendChild(row);
+  });
+}
+function plantGarden(){
+  if(viewingSharedWorld)return;
+  if(Number(universeData.seeds||0)<1){gardenMessage("Benih habis. Kamu bisa mendapatkan benih dari hasil panen.");return;}
+  universeData.garden=Array.isArray(universeData.garden)?universeData.garden:[];
+  if(universeData.garden.filter(p=>p&&p.plantedAt).length>=3){gardenMessage("Semua petak sedang ditanami. Panen tanaman matang dahulu.");return;}
+  const index=universeData.garden.findIndex(p=>!p||!p.plantedAt);
+  universeData.garden[index]={plantedAt:Date.now()};universeData.seeds--;
+  saveUniverseData();renderUniverse();gardenMessage("Benih ditanam! Tanaman siap dipanen setelah 1 menit.");
+}
+function harvestGarden(){
+  if(viewingSharedWorld)return;
+  const garden=Array.isArray(universeData.garden)?universeData.garden:[];
+  let harvested=0;const now=Date.now();
+  universeData.garden=garden.map(plot=>{if(plot&&plot.plantedAt&&now-Number(plot.plantedAt)>=60000){harvested++;return null;}return plot;});
+  if(!harvested){gardenMessage("Belum ada tanaman matang. Tunggu sebentar lalu coba lagi.");return;}
+  universeData.coins=Math.min(1000000,Number(universeData.coins||0)+harvested*7);
+  universeData.seeds=Math.min(99,Number(universeData.seeds||0)+harvested);
+  universeData.xp=Math.min(1000000,Number(universeData.xp||0)+harvested*2);
+  saveUniverseData();renderUniverse();gardenMessage("Panen berhasil! +"+(harvested*7)+" koin, +"+harvested+" benih, +"+(harvested*2)+" XP.");
+}
+function buyIslandItem(type){
+  if(viewingSharedWorld)return;
+  const item=ISLAND_SHOP.find(x=>x.type===type);if(!item)return;
+  universeData.inventory=universeData.inventory||{};
+  if(Number(universeData.coins||0)<item.price){universeMessage("Koin belum cukup. Panen kebun untuk mendapatkan koin.");return;}
+  universeData.coins-=item.price;universeData.inventory[type]=Number(universeData.inventory[type]||0)+1;
+  saveUniverseData();renderUniverse();universeMessage(item.name+" masuk ke tas dekorasimu.");
+}
+function universeFeedPet(){if(viewingSharedWorld)return;if(Number(universeData.coins||0)<2){universeMessage("Camilan Pip membutuhkan 2 koin. Panen kebun dulu.");return;}universeData.coins-=2;universeData.hunger=Math.min(100,universeData.hunger+22);universeData.happiness=Math.min(100,universeData.happiness+4);universeData.care++;universeData.xp++;saveUniverseData();renderUniverse();universeMessage("Pip memakan camilan dengan lahap! Kamu mendapat pengalaman.");}
+function universePlayPet(){if(viewingSharedWorld)return;universeData.happiness=Math.min(100,universeData.happiness+18);universeData.hunger=Math.max(0,universeData.hunger-7);universeData.play++;universeData.xp++;saveUniverseData();renderUniverse();universeMessage("Pip bermain bersamamu. Persahabatan kalian semakin kuat!");}
+function toggleUniverseDecor(){if(viewingSharedWorld)return;universeDecorMode=!universeDecorMode;const b=$("universeDecorButton");if(b)b.textContent="🌼 Mode dekorasi: "+(universeDecorMode?"aktif":"mati");universeMessage(universeDecorMode?"Mode dekorasi aktif. Ketuk area pulau untuk menaruh benda dari tas dekorasimu.":"Mode dekorasi dimatikan.");}
+(function attachUniverseCanvas(){const canvas=$("universeCanvas");if(!canvas)return;canvas.addEventListener("click",function(e){if(!universeDecorMode){universeMessage("Aktifkan mode dekorasi untuk menambahkan benda ke pulau.");return;}const r=canvas.getBoundingClientRect();const x=Math.round((e.clientX-r.left)*canvas.width/r.width);const y=Math.round((e.clientY-r.top)*canvas.height/r.height);if(x<150||x>810||y<190||y>390){universeMessage("Pilih area pulau yang berumput untuk menaruh dekorasi.");return;}const available=Object.entries(universeData.inventory||{}).filter(([type,count])=>Number(count)>0&&["flower","lamp","mushroom","crystal","tree","bench","pond"].includes(type));if(!available.length){universeMessage("Tas dekorasimu kosong. Beli dekorasi di toko pulau dahulu.");return;}const [type,count]=available[0];universeData.decorations=universeData.decorations||[];universeData.decorations.push({x:x,y:y,type:type});universeData.inventory[type]=Number(count)-1;universeData.xp=(universeData.xp||0)+1;saveUniverseData();renderUniverse();universeMessage("Dekorasi ditambahkan! Pulau kecilmu semakin unik.");});})();
 async function shareUniverse(){
   const name=(character&&character.displayName)||"Petualang Aurelith";
   const url=location.origin+location.pathname+"?world="+encodeURIComponent((currentUser&&currentUser.username)||"guest");
