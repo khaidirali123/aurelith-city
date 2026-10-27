@@ -1518,35 +1518,56 @@ async function tradeItemTo(playerId, playerName) {
   }
 }
 
+let mapPlayersRefreshBusy = false;
+let lastPresenceHeartbeat = 0;
+
 async function refreshMapPlayers() {
-  if (!token) return;
+  if (!token || mapPlayersRefreshBusy) return;
+  mapPlayersRefreshBusy = true;
   try {
-    await api("/api/social/presence", {method:"POST",body:"{}"});
+    // Heartbeat less often than position reads to avoid unnecessary D1 writes.
+    const now = Date.now();
+    if (now - lastPresenceHeartbeat > 10000) {
+      await api("/api/social/presence", {method:"POST",body:"{}"});
+      lastPresenceHeartbeat = now;
+    }
     const data = await api("/api/social/players");
     const layer = $("mapPlayersLayer");
     if (!layer) return;
-    layer.replaceChildren();
+    const seen = new Set();
     for (const player of data.players || []) {
       if (Number(player.online) !== 1) continue;
+      const id = String(player.characterId);
+      seen.add(id);
       const x = Math.max(25,Math.min(1175,Number(player.x)||600));
       const y = Math.max(25,Math.min(775,Number(player.y)||400));
-      const marker = document.createElement("button");
-      marker.className = "map-player";
+      let marker = layer.querySelector('[data-player-id="' + CSS.escape(id) + '"]');
+      if (!marker) {
+        marker = document.createElement("button");
+        marker.className = "map-player";
+        marker.dataset.playerId = id;
+        marker.addEventListener("click", event => {
+          event.stopPropagation();
+          showTab("socialTab");
+          openWhisper(marker.dataset.playerId, marker.dataset.name || "Warga").catch(error => setSocialStatus(error.message,false));
+        });
+        layer.append(marker);
+      }
       marker.style.left = (x / 1200 * 100) + "%";
       marker.style.top = (y / 800 * 100) + "%";
       marker.textContent = player.outfit === "formal" ? "👔" : player.outfit === "worker" ? "🧑‍🔧" : player.outfit === "sport" ? "🏃" : "🧑";
       marker.dataset.name = player.displayName || "Warga";
       marker.title = (player.displayName || "Warga") + " · klik untuk chat pribadi";
       marker.setAttribute("aria-label", marker.title);
-      marker.addEventListener("click", event => {
-        event.stopPropagation();
-        showTab("socialTab");
-        openWhisper(player.characterId,player.displayName || "Warga").catch(error => setSocialStatus(error.message,false));
-      });
-      layer.append(marker);
+    }
+    // Remove only markers for players no longer online; keep existing nodes to avoid flicker.
+    for (const marker of Array.from(layer.querySelectorAll("[data-player-id]"))) {
+      if (!seen.has(marker.dataset.playerId)) marker.remove();
     }
   } catch (error) {
     // Map presence is optional; do not interrupt movement or gameplay if social service is unavailable.
+  } finally {
+    mapPlayersRefreshBusy = false;
   }
 }
 
@@ -1772,15 +1793,20 @@ async function initialize() {
 
 setAuthMode("login");
 initialize();
+// Frequent lightweight position refresh for near-real-time movement on the map.
+setInterval(() => {
+  if (!token) return;
+  refreshMapPlayers();
+}, 1500);
+
+// Chat/friends refresh stays slower to avoid excessive database traffic.
 setInterval(() => {
   if (!token || socialPollBusy) return;
-  api("/api/social/presence", {method:"POST",body:"{}"}).catch(() => {});
-  refreshMapPlayers();
   const socialPanel = $("socialTab");
   if (socialPanel && socialPanel.classList.contains("active")) {
     refreshSocial().catch(error => setSocialStatus(error.message, false));
   }
-}, 12000);
+}, 4000);
 </script>
 </body>
 </html>
