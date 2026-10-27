@@ -510,6 +510,7 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
 .pixel-badge{display:inline-block;background:#a9df9c;color:#203344;padding:4px 7px;border:2px solid #d7f6bd;font-size:11px;font-weight:bold}
 @media(max-width:760px){.universe-wrap{grid-template-columns:1fr}.universe-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.universe-side-card{margin-bottom:0}.universe-side-card:first-child{grid-column:1/-1}.universe-actions{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding:16px 12px 32px}.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{font-size:12px;padding:10px 6px}}
 
+.garden-plots{display:grid;gap:8px;margin:10px 0}.garden-plot-card,.garden-shop-row{border:1px solid var(--border,#d8dfd7);border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:space-between;gap:10px}.garden-plot-card{display:block}.garden-shop-row .universe-note{margin:4px 0 0}.garden-shop-row button{min-width:64px}
 </style>
 </head>
 <body>
@@ -602,6 +603,22 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
             <label>Rasa kenyang</label><div class="pet-meter"><span id="universeHungerBar" style="width:75%"></span></div>
             <label>Kebahagiaan</label><div class="pet-meter"><span id="universeHappyBar" style="width:85%"></span></div>
             <p class="universe-note">Rawat Pip setiap kali berkunjung. Semakin sering kalian bermain, semakin banyak pengalaman yang didapat.</p>
+          </div>
+          <div class="universe-side-card">
+            <h2>🌱 Kebun mungil</h2>
+            <p class="universe-note">Tanam benih, tunggu 1 menit, lalu panen. Tanaman tumbuh berdasarkan waktu meski halaman ditutup.</p>
+            <div id="gardenPlots" class="garden-plots"></div>
+            <div class="row-actions">
+              <button onclick="plantGarden()">🌰 Tanam benih</button>
+              <button class="secondary" onclick="harvestGarden()">🧺 Panen</button>
+            </div>
+            <div class="row-actions"><button class="secondary" onclick="buySeeds()">🛍️ Beli 3 benih · 5 koin</button></div>
+            <p class="universe-note" id="gardenMessage" role="status">Kebunmu siap ditanami.</p>
+          </div>
+          <div class="universe-side-card">
+            <h2>🛍️ Toko dekorasi</h2>
+            <p class="universe-note">Beli benda dengan koin, lalu aktifkan mode dekorasi dan ketuk rumput untuk menaruhnya.</p>
+            <div id="islandShopItems" class="garden-plots"></div>
           </div>
           <div class="universe-side-card">
             <h2>🎒 Buku Petualangan</h2>
@@ -1499,7 +1516,25 @@ $("chatForm").addEventListener("submit", async event => {
 /* My Little Universe-inspired island layer. Personal decorations/pet progress are browser-local in this first visual phase. */
 let universeDecorMode = false;
 let viewingSharedWorld = false;
-let universeData = { decorations: [], hunger: 75, happiness: 85, care: 0, play: 0, xp: 0 };
+const ISLAND_DEFAULTS = { decorations: [], hunger: 75, happiness: 85, care: 0, play: 0, xp: 0, coins: 20, seeds: 3, garden: [null,null,null], inventory: {flower:2,lamp:0,mushroom:0,crystal:0,tree:0,bench:0,pond:0} };
+let universeData = structuredClone(ISLAND_DEFAULTS);
+function normalizeUniverseData(value) {
+  const input = value && typeof value === "object" ? value : {};
+  const inventory = Object.assign({}, ISLAND_DEFAULTS.inventory, input.inventory && typeof input.inventory === "object" ? input.inventory : {});
+  const garden = Array.isArray(input.garden) ? input.garden.slice(0,3) : [];
+  while (garden.length < 3) garden.push(null);
+  return {
+    ...ISLAND_DEFAULTS, ...input,
+    decorations: Array.isArray(input.decorations) ? input.decorations.slice(0,100) : [],
+    hunger: Math.max(0,Math.min(100,Number(input.hunger ?? 75)||0)),
+    happiness: Math.max(0,Math.min(100,Number(input.happiness ?? 85)||0)),
+    care: Math.max(0,Number(input.care)||0), play: Math.max(0,Number(input.play)||0),
+    xp: Math.max(0,Number(input.xp)||0), coins: Math.max(0,Number(input.coins ?? 20)||0),
+    seeds: Math.max(0,Math.min(99,Number(input.seeds ?? 3)||0)),
+    garden: garden.map(p=>p&&Number.isFinite(Number(p.plantedAt))?{plantedAt:Number(p.plantedAt)}:null),
+    inventory
+  };
+}
 function universeStorageKey() {
   return "aurelith_universe_" + ((currentUser && currentUser.id) || "guest");
 }
@@ -1511,7 +1546,7 @@ async function loadUniverseData() {
       const response = await fetch("/api/island/world?username=" + encodeURIComponent(sharedName), { cache: "no-store" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Dunia tidak ditemukan.");
-      universeData = Object.assign({ decorations: [], hunger: 75, happiness: 85, care: 0, play: 0, xp: 0 }, result.island || {});
+      universeData = normalizeUniverseData(result.island || {});
       renderUniverse();
       universeMessage("Kamu sedang mengunjungi pulau milik " + (result.owner?.displayName || sharedName) + ". Mode kunjungan: pulau ini hanya bisa dilihat.");
       const decorButton = $("universeDecorButton");
@@ -1528,14 +1563,14 @@ async function loadUniverseData() {
   document.querySelectorAll(".universe-actions button").forEach(button => { button.disabled = false; });
   try {
     const saved = JSON.parse(localStorage.getItem(universeStorageKey()) || "null");
-    if (saved && typeof saved === "object") universeData = Object.assign(universeData, saved);
+    if (saved && typeof saved === "object") universeData = normalizeUniverseData(saved);
   } catch {}
   renderUniverse();
   if (!token || !currentUser) return;
   try {
     const result = await api("/api/island");
     if (result.island && typeof result.island === "object") {
-      universeData = Object.assign({ decorations: [], hunger: 75, happiness: 85, care: 0, play: 0, xp: 0 }, result.island);
+      universeData = normalizeUniverseData(result.island);
       try { localStorage.setItem(universeStorageKey(), JSON.stringify(universeData)); } catch {}
       renderUniverse();
     } else {
@@ -1667,12 +1702,20 @@ function renderIslandShop(){
     btn.onclick=()=>buyIslandItem(item.type);row.append(info,btn);el.appendChild(row);
   });
 }
+function buySeeds(){
+  if(viewingSharedWorld)return;
+  if(Number(universeData.coins||0)<5){gardenMessage("Kamu membutuhkan 5 koin untuk membeli 3 benih.");return;}
+  if(Number(universeData.seeds||0)>96){gardenMessage("Tas benih hampir penuh. Tanam beberapa benih dahulu.");return;}
+  universeData.coins-=5;universeData.seeds=Math.min(99,Number(universeData.seeds||0)+3);
+  saveUniverseData();renderUniverse();gardenMessage("Kamu membeli 3 benih. Selamat berkebun!");
+}
 function plantGarden(){
   if(viewingSharedWorld)return;
-  if(Number(universeData.seeds||0)<1){gardenMessage("Benih habis. Kamu bisa mendapatkan benih dari hasil panen.");return;}
-  universeData.garden=Array.isArray(universeData.garden)?universeData.garden:[];
-  if(universeData.garden.filter(p=>p&&p.plantedAt).length>=3){gardenMessage("Semua petak sedang ditanami. Panen tanaman matang dahulu.");return;}
+  if(Number(universeData.seeds||0)<1){gardenMessage("Benih habis. Beli 3 benih seharga 5 koin atau tunggu hasil panen.");return;}
+  universeData.garden=Array.isArray(universeData.garden)?universeData.garden:[null,null,null];
+  while(universeData.garden.length<3)universeData.garden.push(null);
   const index=universeData.garden.findIndex(p=>!p||!p.plantedAt);
+  if(index<0){gardenMessage("Semua petak sedang ditanami. Panen tanaman matang dahulu.");return;}
   universeData.garden[index]={plantedAt:Date.now()};universeData.seeds--;
   saveUniverseData();renderUniverse();gardenMessage("Benih ditanam! Tanaman siap dipanen setelah 1 menit.");
 }
