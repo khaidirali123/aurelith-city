@@ -618,7 +618,7 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
       <button data-tab="cityTab" onclick="showTab('cityTab',this)">🗺️ Kota</button>
       <button data-tab="jobsTab" onclick="showTab('jobsTab',this)">💼 Pekerjaan</button>
       <button data-tab="walletTab" onclick="showTab('walletTab',this)">💰 Dompet</button>
-      <button data-tab="gameTab" onclick="showTab('gameTab',this)">🎮 Aktivitas & kriminalitas</button>
+      <button data-tab="gameTab" onclick="showTab('gameTab',this)">🎮 Aktivitas</button>
       <button data-tab="lifeTab" onclick="showTab('lifeTab',this)">🏙️ Kehidupan</button>
       <button data-tab="socialTab" onclick="showTab('socialTab',this)">👥 Multiplayer</button>
       <button data-tab="settingsTab" onclick="showTab('settingsTab',this)">👤 Karakter</button>
@@ -847,16 +847,6 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
           </div>
         </div>
         <div class="stack">
-          <div class="panel">
-            <h2>🚨 Sistem kriminalitas</h2>
-            <p class="muted">Aksi berisiko dapat menghasilkan uang, tetapi kegagalan menyebabkan denda. Aksi menguras energi dan menaikkan tingkat buronan.</p>
-            <div class="job-list">
-              <article class="job"><div class="job-head"><strong>👜 Mencopet</strong><span class="salary">80–220</span></div><p class="muted">Risiko relatif rendah; peluang berhasil 58%.</p><button onclick="attemptCrime('pickpocket')">Coba mencopet</button></article>
-              <article class="job"><div class="job-head"><strong>🏪 Mencuri dari toko</strong><span class="salary">140–360</span></div><p class="muted">Peluang berhasil 48%; hukuman lebih besar jika gagal.</p><button onclick="attemptCrime('shoplift')">Coba mencuri</button></article>
-              <article class="job"><div class="job-head"><strong>🏦 Perampokan berisiko</strong><span class="salary">350–800</span></div><p class="muted">Peluang berhasil 30%; berisiko tinggi dan meningkatkan buronan.</p><button class="danger" onclick="attemptCrime('heist')">Mulai perampokan</button></article>
-            </div>
-            <button class="secondary full" style="margin-top:12px" onclick="layLow()">🕶️ Bersembunyi untuk menurunkan buronan</button>
-          </div>
           <div class="panel">
             <h2>📜 Aktivitas terbaru</h2>
             <div id="gameActivityLog" class="feed"><div class="empty">Memuat riwayat aktivitas...</div></div>
