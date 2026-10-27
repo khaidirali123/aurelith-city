@@ -55,16 +55,13 @@ textarea{resize:vertical;min-height:90px}
 .tabs button{background:var(--panel2);color:var(--muted);border:1px solid var(--border)}
 .tabs button.active{background:var(--accent);color:#17122a;border-color:var(--accent)}
 .tab-panel{display:none}.tab-panel.active{display:block}
-.city-map{position:relative;min-height:330px;overflow:hidden;border-radius:13px;border:1px solid #536d69;background:
-linear-gradient(28deg,transparent 46%,#b6b18a 47%,#b6b18a 52%,transparent 53%),
-linear-gradient(152deg,transparent 46%,#b6b18a 47%,#b6b18a 52%,transparent 53%),
-linear-gradient(90deg,#2e5149,#476b58 50%,#355a50)}
-.city-map:before{content:"";position:absolute;inset:0;background-image:linear-gradient(90deg,transparent 48%,#b6b18a 49%,#b6b18a 51%,transparent 52%);opacity:.5;pointer-events:none}
-.district{position:absolute;width:115px;min-height:72px;border:2px solid #e0d0a9;border-radius:10px;background:#97745f;color:white;display:grid;place-content:center;gap:3px;text-align:center;box-shadow:0 5px 0 #4a493d;padding:8px}
+
+
+
 .district b{font-size:23px}.district small{font-size:10px}
 .d1{top:9%;left:8%}.d2{top:13%;right:8%;background:#655d91}
 .d3{bottom:13%;left:12%;background:#9a8754}.d4{bottom:12%;right:12%;background:#487c65}
-.map-label{position:absolute;bottom:10px;left:10px;right:10px;font-size:12px;background:#111923dd;border-radius:8px;padding:8px}
+
 .job-list{display:grid;gap:10px}
 .job{border:1px solid var(--border);border-radius:12px;padding:14px;background:#141b29}
 .job-head{display:flex;justify-content:space-between;gap:10px;align-items:start}
@@ -83,7 +80,7 @@ linear-gradient(90deg,#2e5149,#476b58 50%,#355a50)}
 footer{text-align:center;color:#78849d;font-size:12px;padding:24px}
 .notice{padding:12px;border-radius:10px;background:#202a3d;color:#cbd5ed;font-size:13px;margin:12px 0}
 @media(max-width:800px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}header{padding:0 15px}.panel{padding:16px}}
-@media(max-width:420px){main{padding:20px 12px}.stats{gap:8px}.stat{padding:13px}.district{width:92px;min-height:65px}.header-right .status{display:none}.logo{font-size:17px}}
+@media(max-width:420px){main{padding:20px 12px}.stats{gap:8px}.stat{padding:13px}.header-right .status{display:none}.logo{font-size:17px}}
 
 
 /* Perbaikan tampilan klasik Aurelith City */
@@ -299,33 +296,11 @@ label {
   border-radius: 1px;
 }
 
-.city-map {
-  min-height: 360px;
-  border: 2px solid #526c68;
-  border-radius: 4px;
-  background-color: #345849;
-  background-image:
-    linear-gradient(0deg, transparent 47%, #b9b38b 48%, #b9b38b 52%, transparent 53%),
-    linear-gradient(90deg, transparent 47%, #b9b38b 48%, #b9b38b 52%, transparent 53%),
-    repeating-linear-gradient(35deg, #0000 0 55px, #ffffff08 56px 57px),
-    linear-gradient(135deg, #365c4a, #527358 45%, #294d42);
-}
 
-.city-map:before {
-  background-image:
-    linear-gradient(90deg, transparent 48%, #c8c39e 49%, #c8c39e 51%, transparent 52%);
-  opacity: .45;
-}
 
-.district {
-  width: 120px;
-  min-height: 77px;
-  background: linear-gradient(#a48769, #765b47);
-  border: 2px solid #d0b58a;
-  border-radius: 4px;
-  box-shadow: 0 4px 0 #273a30, 0 5px 12px #0005;
-  transition: transform .15s, filter .15s;
-}
+
+
+
 
 .district:hover {
   transform: translateY(-3px);
@@ -344,12 +319,7 @@ label {
   background: linear-gradient(#559875, #32674d);
 }
 
-.map-label {
-  background: #101b22ed;
-  border: 1px solid #60766f;
-  border-radius: 3px;
-  color: #dcebdc;
-}
+
 
 .job-list {
   gap: 8px;
@@ -455,19 +425,13 @@ footer {
     padding: 13px;
   }
 
-  .district {
-    width: 88px;
-    min-height: 65px;
-    padding: 5px;
-  }
+  
 
   .district small {
     font-size: 9px;
   }
 
-  .city-map {
-    min-height: 300px;
-  }
+  
 }
 
 
@@ -478,20 +442,20 @@ footer {
 .stat{position:relative;overflow:hidden}.stat:after{content:"";position:absolute;right:-18px;bottom:-27px;width:78px;height:78px;border:1px solid #ffffff0b;border-radius:50%}
 .map-toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 12px}
 .map-toolbar .muted{margin:0}
-.city-map{min-height:430px;background-color:#315548;isolation:isolate}
-.city-map:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(0deg,transparent 0 39px,#ffffff08 40px 41px),repeating-linear-gradient(90deg,transparent 0 39px,#ffffff08 40px 41px)}
-.district{z-index:2;cursor:pointer;transition:transform .16s,filter .16s;min-height:66px}
+
+
+
 .district:hover{transform:translateY(-3px);filter:brightness(1.14)}
 .d1{top:10%;left:6%}.d2{top:12%;right:6%}.d3{bottom:15%;left:7%}.d4{bottom:13%;right:7%}
 .d5{top:42%;left:38%;background:linear-gradient(#557f9a,#355c74);border-color:#b8d9eb}
 .d6{top:7%;left:42%;background:linear-gradient(#8b7756,#5c4c35);border-color:#e4d2a8}
 .d7{bottom:8%;left:42%;background:linear-gradient(#9a5e5e,#663c42);border-color:#e5b3b3}
 .d8{top:43%;right:6%;background:linear-gradient(#6e8960,#3f5e3b);border-color:#c4ddb6}
-.map-character{position:absolute;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#e8f8ff;color:#102331;border:3px solid #64b5df;box-shadow:0 0 0 5px #64b5df38,0 3px 10px #0008;font-size:17px;pointer-events:none;transition:left .35s,top .35s}
+
 .map-player{position:absolute;z-index:7;transform:translate(-50%,-50%);width:27px;height:27px;padding:0;border-radius:50%;display:grid;place-items:center;background:#f4d28b;border:2px solid #fff1bd;color:#192630;font-size:14px;box-shadow:0 2px 8px #0009;transition:left .35s,top .35s}
 .map-player:after{content:attr(data-name);position:absolute;top:25px;left:50%;transform:translateX(-50%);width:max-content;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;color:#fff;background:#111d;padding:2px 4px;border-radius:3px}
-.map-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:11px;color:#b5c8d1;font-size:11px}
-.map-legend span{display:inline-flex;align-items:center;gap:6px}.legend-dot{width:8px;height:8px;border-radius:50%;background:#64b5df;display:inline-block}
+
+.map-legend span{display:inline-flex;align-items:center;gap:6px}
 .job-tools{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:10px;margin:15px 0}
 .job-tools input,.job-tools select{min-width:0}
 .job-meta{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0;color:var(--muted);font-size:12px}
@@ -499,7 +463,7 @@ footer {
 .gameplay-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
 .gameplay-shortcuts button{min-height:54px}
 .activity-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;background:#10232c;border:1px solid #365260;color:#bde7f6;border-radius:3px;font-size:11px}
-@media(max-width:600px){.city-map{min-height:390px}.district{width:86px;min-height:60px;padding:5px}.district b{font-size:19px}.district small{font-size:8px}.d5{left:37%}.d6{left:39%}.d7{left:39%}.d8{right:3%}.job-tools{grid-template-columns:1fr}.gameplay-shortcuts{grid-template-columns:1fr}.dashboard-ribbon{align-items:flex-start}}
+@media(max-width:600px){.district b{font-size:19px}.district small{font-size:8px}.d5{left:37%}.d6{left:39%}.d7{left:39%}.d8{right:3%}.job-tools{grid-template-columns:1fr}.gameplay-shortcuts{grid-template-columns:1fr}.dashboard-ribbon{align-items:flex-start}}
 
 
 .game-action-result{padding:12px;border:1px solid var(--border);background:#14232d;margin:8px 0;border-radius:4px}
@@ -539,8 +503,8 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
 .tabs button{border-radius:5px}
 .tabs button.active{background:#f2b879;color:#39294b;border-color:#ffe0a8}
 .dashboard-ribbon{border:2px solid #526584;background:#25334e;border-radius:8px}
-.city-map{border:3px solid #8ca68b;border-radius:5px;background-color:#6d9b76;background-image:linear-gradient(28deg,transparent 46%,#d7c28b 47%,#d7c28b 52%,transparent 53%),linear-gradient(152deg,transparent 46%,#d7c28b 47%,#d7c28b 52%,transparent 53%),linear-gradient(90deg,#487b69,#78a879 50%,#4b806b);image-rendering:pixelated}
-.district{border-radius:3px;border:3px solid #f7dfaa;box-shadow:0 4px 0 #3d4b47;font-family:inherit}
+
+
 .job{border-radius:5px;background:#19243b}
 .universe-wrap{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(240px,.8fr);gap:16px;align-items:start}
 .universe-stage{overflow:hidden;border:3px solid #6c8e86;border-radius:7px;background:#8ec5cf;box-shadow:0 5px 0 #0b1020}
@@ -597,7 +561,7 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
   <section id="cityView" class="hidden">
     <div class="welcome">
       <h1>Selamat datang di Aurelith.</h1>
-      <p class="muted">Kota virtual tempat kehidupan, pekerjaan, dan pilihanmu berkembang.</p>
+      <p class="muted">Dunia santai untuk menghias pulau, merawat Pip, dan bertemu teman.</p>
     </div>
 
     <section class="stats">
@@ -608,19 +572,15 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
     </section>
 
     <div class="dashboard-ribbon">
-      <div><strong>Selamat datang di Aurelith</strong><p class="muted">Bangun karier, jelajahi distrik, dan kelola kehidupan karaktermu.</p></div>
+      <div><strong>Selamat datang di Aurelith</strong><p class="muted">Bangun pulau yang mencerminkan imajinasimu.</p></div>
       <span class="activity-chip" id="activityChip">● Warga aktif</span>
     </div>
 
     <div class="tabs">
-      <button class="active" data-tab="universeTab" onclick="showTab('universeTab',this)">🌱 Duniaku</button>
-      <button data-tab="cityTab" onclick="showTab('cityTab',this)">🗺️ Kota</button>
-      <button data-tab="jobsTab" onclick="showTab('jobsTab',this)">💼 Pekerjaan</button>
-      <button data-tab="walletTab" onclick="showTab('walletTab',this)">💰 Dompet</button>
-      <button data-tab="gameTab" onclick="showTab('gameTab',this)">🎮 Aktivitas</button>
-      <button data-tab="lifeTab" onclick="showTab('lifeTab',this)">🏙️ Kehidupan</button>
-      <button data-tab="socialTab" onclick="showTab('socialTab',this)">👥 Multiplayer</button>
-      <button data-tab="settingsTab" onclick="showTab('settingsTab',this)">👤 Karakter</button>
+      <button class="active" data-tab="universeTab" onclick="showTab('universeTab',this)">🌱 Pulauku</button>
+      <button data-tab="cityTab" onclick="showTab('cityTab',this)">📖 Jurnal & profil</button>
+      <button data-tab="socialTab" onclick="showTab('socialTab',this)">🫶 Teman</button>
+      <button data-tab="settingsTab" onclick="showTab('settingsTab',this)">🎨 Karakter</button>
     </div>
 
 
@@ -667,198 +627,32 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
     </section>
 
     <section id="cityTab" class="tab-panel">
-      <div class="layout">
-        <div class="stack">
-          <div class="panel">
-            <h2>🗺️ Jelajahi Aurelith</h2>
-            <p class="muted">Pilih distrik untuk memperbarui lokasi karaktermu.</p>
-            <div class="city-map">
-              <button class="district d1" onclick="visit('Pusat Kota',600,400)"><b>🏛️</b><small>PUSAT KOTA</small></button>
-              <button class="district d2" onclick="visit('Distrik Bisnis',900,230)"><b>🏢</b><small>DISTRIK BISNIS</small></button>
-              <button class="district d3" onclick="visit('Pasar',300,570)"><b>🏪</b><small>PASAR</small></button>
-              <button class="district d4" onclick="visit('Taman Kota',920,580)"><b>🌳</b><small>TAMAN KOTA</small></button>
-              <button class="district d5" onclick="visit('Stasiun Aurelith',600,400)"><b>🚉</b><small>STASIUN</small></button>
-              <button class="district d6" onclick="visit('Kawasan Industri',590,170)"><b>🏭</b><small>INDUSTRI</small></button>
-              <button class="district d7" onclick="visit('Distrik Hiburan',600,690)"><b>🎭</b><small>HIBURAN</small></button>
-              <button class="district d8" onclick="visit('Klinik Kota',1000,410)"><b>🏥</b><small>KLINIK</small></button>
-              <div id="mapCharacter" class="map-character" aria-label="Posisi karakter kamu">🧑</div>
-              <div id="mapPlayersLayer" aria-label="Pemain lain di peta"></div>
-              <div id="mapLocation" class="map-label">📍 Alun-Alun Aurelith</div>
-            </div>
-            <div class="map-legend"><span><i class="legend-dot"></i> Posisi karaktermu</span><span>🟡 Pemain online</span><span>🧭 Klik distrik untuk berpindah</span></div>
-            <p class="muted">Posisi karakter disimpan ke server saat kamu memilih distrik.</p>
-          </div>
-          <div class="panel">
-            <h2>🌐 Aktivitasmu</h2>
-            <div id="feed" class="feed"><div class="event">Kota siap menyambutmu.</div></div>
-          </div>
-        </div>
-        <div class="stack">
-          <div class="panel">
-            <h2>👤 Profil Warga</h2>
-            <div class="profile">
-              <div id="avatar" class="avatar skin-medium outfit-casual">🧑</div>
-              <div>
-                <strong id="characterName">Warga Aurelith</strong>
-                <div id="usernameLabel" class="muted">Penduduk Aurelith</div>
-              </div>
-            </div>
-            <p id="characterBio" class="muted">Belum ada bio karakter.</p>
-            <p class="muted">Energi</p><div class="progress"><div id="energyBar"></div></div>
-            <p class="muted">Suasana hati</p><div class="progress"><div id="moodBar"></div></div>
-            <div class="row-actions">
-              <button onclick="showTab('jobsTab')">💼 Cari pekerjaan</button>
-              <button class="secondary" onclick="showTab('walletTab')">💰 Buka dompet</button>
-            </div>
-          </div>
-          <div class="panel">
-            <h2>📌 Ringkasan</h2>
-            <p>Saldo: <strong id="sideBalance">0</strong></p>
-            <p>Aktivitas: <strong id="currentActivity">Santai</strong></p>
-            <button class="secondary full" onclick="refreshAll()">↻ Segarkan data</button>
-            <div class="gameplay-shortcuts">
-              <button class="secondary" onclick="showTab('cityTab')">🗺️ Jelajah</button>
-              <button class="secondary" onclick="showTab('jobsTab')">💼 Karier</button>
-              <button class="secondary" onclick="showTab('walletTab')">💰 Dompet</button>
-            </div>
-          </div>
-        </div>
+  <div class="layout">
+    <div class="panel">
+      <div class="welcome"><h1>🌿 Profil Penghuni Pulau</h1><p class="muted">Ini ruang pribadimu di Aurelith. Tidak ada peta kota atau distrik—fokusmu adalah merawat pulau dan membangun cerita kecilmu.</p></div>
+      <div class="profile">
+        <div id="avatar" class="avatar skin-medium outfit-casual">🧑</div>
+        <div><strong id="characterName">Penghuni Pulau</strong><div id="usernameLabel" class="muted">@pemain</div></div>
       </div>
-    </section>
-
-    <section id="jobsTab" class="tab-panel">
-      <div class="panel">
-        <h2>💼 Pekerjaan di Aurelith</h2>
-        <p class="muted">Bandingkan gaji dan lokasi pekerjaan. Gaji dibayarkan melalui sistem server; batas kerja tetap 60 menit.</p>
-        <div class="job-tools">
-          <input id="jobSearch" type="search" placeholder="Cari pekerjaan atau lokasi..." aria-label="Cari pekerjaan">
-          <select id="jobSort" aria-label="Urutkan pekerjaan">
-            <option value="salary-asc">Gaji terendah</option>
-            <option value="salary-desc">Gaji tertinggi</option>
-            <option value="name">Nama pekerjaan A–Z</option>
-          </select>
-        </div>
-        <div id="jobsList" class="job-list"><div class="empty">Memuat pekerjaan...</div></div>
-        <div id="jobsMessage" class="message" role="status"></div>
+      <p id="characterBio" class="muted">Tulis bio singkat tentang dirimu di pengaturan karakter.</p>
+      <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+        <div class="stat"><small>💚 Energi</small><strong id="statEnergy">100 / 100</strong><div class="progress"><div id="energyBar"></div></div></div>
+        <div class="stat"><small>😊 Suasana hati</small><strong id="statMood">100 / 100</strong><div class="progress"><div id="moodBar"></div></div></div>
+        <div class="stat"><small>🪙 Koin</small><strong id="statBalance">0</strong><span id="sideBalance" class="hidden">0</span><span id="walletBalance" class="hidden">0</span></div>
+        <div class="stat"><small>🍃 Aktivitas</small><strong id="currentActivity">Merawat pulau</strong><span id="activityChip" class="hidden">Warga aktif</span></div>
       </div>
-      <div class="panel">
-        <h2>📈 Karier dan kenaikan pangkat</h2>
-        <p class="muted">Setiap kali kamu bekerja, pengalaman pekerjaan bertambah. Setiap tiga sif menaikkan pangkat hingga level 5 dan meningkatkan gaji.</p>
-        <div id="careerList" class="list"><div class="empty">Memuat progres karier...</div></div>
-      </div>
-    </section>
-
-    <section id="lifeTab" class="tab-panel">
-      <div class="layout">
-        <div class="stack">
-          <div class="panel">
-            <h2>🧍 Kebutuhan harian</h2>
-            <p class="muted">Kebutuhan berkurang seiring waktu, termasuk saat kamu offline. Jaga karakter tetap makan, bersih, dan cukup istirahat.</p>
-            <div id="needsList" class="list"><div class="empty">Memuat kebutuhan...</div></div>
-            <div class="row-actions">
-              <button onclick="fulfillNeed('eat')">🍲 Makan · 50</button>
-              <button onclick="fulfillNeed('shower')">🚿 Mandi · 20</button>
-              <button onclick="fulfillNeed('sleep')">🛌 Tidur singkat</button>
-            </div>
-            <div id="needsMessage" class="message" role="status"></div>
-          </div>
-          <div class="panel">
-            <h2>🏪 Bisnis milik pemain</h2>
-            <p class="muted">Bangun usaha menggunakan modal, kumpulkan pendapatan setiap 30 menit, dan tingkatkan level bisnis.</p>
-            <div class="row-actions">
-              <button onclick="createBusiness('shop')">🏪 Toko · 4.000</button>
-              <button onclick="createBusiness('cafe')">☕ Kafe · 5.000</button>
-              <button onclick="createBusiness('workshop')">🛠️ Bengkel · 6.500</button>
-            </div>
-            <div id="businessList" class="list"><div class="empty">Memuat bisnis...</div></div>
-            <div id="businessMessage" class="message" role="status"></div>
-          </div>
-        </div>
-        <div class="stack">
-          <div class="panel">
-            <h2>🚶 Kehidupan warga kota</h2>
-            <p class="muted">NPC memiliki pekerjaan, distrik, suasana hati, dan rutinitas berdasarkan waktu kota.</p>
-            <div id="cityClock" class="notice">Memuat waktu kota...</div>
-            <div id="npcList" class="social-list"><div class="empty">Memuat warga...</div></div>
-            <button class="secondary" onclick="loadCityLife()">↻ Perbarui aktivitas warga</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="walletTab" class="tab-panel">
-      <div class="layout">
-        <div class="stack">
-          <div class="panel">
-            <h2>💰 Dompet warga</h2>
-            <p class="muted">Saldo uang virtual yang tersimpan di database.</p>
-            <div style="font-size:clamp(26px,5vw,38px);font-weight:850" id="walletBalance">0</div>
-            <button style="margin-top:15px" onclick="loadWallet()">↻ Perbarui dompet</button>
-          </div>
-        </div>
-        <div class="panel">
-          <h2>📜 Riwayat transaksi</h2>
-          <div id="transactions" class="list"><div class="empty">Memuat transaksi...</div></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="gameTab" class="tab-panel">
-      <div class="layout">
-        <div class="stack">
-          <div class="panel">
-            <h2>⏳ Aktivitas berkelanjutan</h2>
-            <p class="muted">Aktivitas dicatat di server. Kamu boleh keluar; saat kembali, server memeriksa apakah waktunya sudah selesai.</p>
-            <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
-              <div class="stat"><small>Kesehatan</small><strong id="gameHealth">100 / 100</strong></div>
-            </div>
-            <div class="notice" id="gameActivityStatus">Memuat status aktivitas...</div>
-            <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-              <div class="stat"><small>Kebugaran</small><strong id="skillFitness">Lv 1 · 0 XP</strong></div>
-              <div class="stat"><small>Pengetahuan</small><strong id="skillKnowledge">Lv 1 · 0 XP</strong></div>
-              <div class="stat"><small>Kerajinan</small><strong id="skillCrafting">Lv 1 · 0 XP</strong></div>
-            </div>
-            <p class="muted">Aktivitas berdurasi tetap berjalan saat kamu logout. Hasil, energi, dan XP diproses oleh server ketika waktunya selesai.</p>
-            <div class="field"><label for="activityHours">Durasi aktivitas</label>
-              <select id="activityHours"><option value="1">1 jam</option><option value="2">2 jam</option><option value="4">4 jam</option><option value="8">8 jam</option></select>
-            </div>
-            <div class="row-actions">
-              <button onclick="startGameActivity('rest')">🛌 Istirahat</button>
-              <button onclick="startGameActivity('side_job')">🧰 Kerja sampingan</button>
-              <button onclick="startGameActivity('training')">🏋️ Latihan</button>
-              <button onclick="startGameActivity('study')">📚 Belajar</button>
-              <button onclick="startGameActivity('volunteer')">🤝 Sukarela</button>
-              <button onclick="startGameActivity('craft')">🛠️ Kerajinan</button>
-            </div>
-            <div id="gameMessage" class="message" role="status"></div>
-          </div>
-          <div class="panel">
-            <h2>🎒 Inventaris</h2>
-            <p class="muted">Kumpulkan barang, gunakan perlengkapan, dan kirim item kepada pemain lain. Barang dan jumlahnya tersimpan di akunmu.</p>
-            <div id="inventoryList" class="list"><div class="empty">Memuat inventaris...</div></div>
-          </div>
-          <div class="panel">
-            <h2>🛒 Toko perlengkapan</h2>
-            <p class="muted">Beli barang menggunakan saldo karakter. Pembelian tercatat di dompet dan barang masuk inventaris.</p>
-            <div id="shopList" class="job-list"><div class="empty">Memuat katalog toko...</div></div>
-            <div id="shopMessage" class="message" role="status"></div>
-          </div>
-        </div>
-        <div class="stack">
-          <div class="panel">
-            <h2>📜 Aktivitas terbaru</h2>
-            <div id="gameActivityLog" class="feed"><div class="empty">Memuat riwayat aktivitas...</div></div>
-          </div>
-        </div>
-      </div>
-    </section>
+      <div class="row-actions"><button onclick="showTab('universeTab')">🌱 Kembali ke pulau</button><button class="secondary" onclick="showTab('settingsTab')">👤 Ubah karakter</button></div>
+      <div class="panel" style="margin-top:18px"><h2>📖 Catatan perjalanan</h2><div id="feed" class="feed"><div class="event">Perjalanan pulau dimulai hari ini.</div></div></div>
+    </div>
+  </div>
+</section>
 
     <section id="socialTab" class="tab-panel">
       <div class="layout">
         <div class="stack">
           <div class="panel">
-            <h2>👥 Warga lain di Aurelith</h2>
-            <p class="muted">Daftar warga yang baru aktif. Tekan profil untuk memulai pesan pribadi atau menambahkan teman.</p>
+            <h2>👥 Teman di Aurelith</h2>
+            <p class="muted">Temukan pemain lain, kirim permintaan pertemanan, lalu berbagi tautan pulau.</p>
             <div class="social-toolbar">
               <span id="socialOnlineCount" class="activity-chip">Mencari warga...</span>
               <button class="secondary" onclick="refreshSocial()">↻ Segarkan</button>
@@ -874,10 +668,10 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
         </div>
         <div class="stack">
           <div class="panel">
-            <h2>💬 Chat kota</h2>
+            <h2>💬 Obrolan teman</h2>
             <div class="chat-channels">
               <button class="secondary active" data-channel="global" onclick="selectChatChannel('global',this)">🌐 Global</button>
-              <button class="secondary" data-channel="local" onclick="selectChatChannel('local',this)">📍 Sekitar</button>
+              <button class="secondary" data-channel="local" onclick="selectChatChannel('local',this)">🪴 Pulau</button>
               <button class="secondary" data-channel="whisper" onclick="selectChatChannel('whisper',this)">🔒 Pribadi</button>
             </div>
             <div id="whisperTarget" class="notice hidden">Pesan pribadi ke: <strong id="whisperTargetName"></strong> <button class="secondary" onclick="clearWhisper()">Ganti pemain</button></div>
@@ -931,7 +725,7 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
           </div>
           <div id="previewName" style="text-align:center;font-weight:800">Warga Aurelith</div>
           <p id="previewBio" class="muted" style="text-align:center">Belum ada bio karakter.</p>
-          <div class="notice">Pilihan penampilan saat ini mengubah tampilan avatar pada panel profil. Ini belum mengubah sprite peta menjadi karakter animasi penuh.</div>
+          <div class="notice">Pilihan penampilan saat ini mengubah tampilan avatar pada panel profil. Penampilan ini adalah identitas visual profilmu di Aurelith.</div>
         </div>
       </div>
     </section>
@@ -1074,7 +868,6 @@ async function enterCity() {
     character = me.character;
     await refreshAll();
     loadUniverseData();
-    connectRealtime();
     addEvent("Kamu masuk ke Aurelith City.");
   } catch (error) {
     if (error.message.toLowerCase().includes("sesi")) {
@@ -1113,30 +906,26 @@ async function logout(callServer = true) {
 
 function updateCharacterUI() {
   if (!character) return;
-
-  $("characterName").textContent = character.displayName || "Warga Aurelith";
-  $("usernameLabel").textContent = currentUser
-    ? "@" + currentUser.username + " · Penduduk Aurelith"
-    : "Penduduk Aurelith";
-
-  $("statBalance").textContent = money(character.money);
-  $("sideBalance").textContent = money(character.money);
-  $("walletBalance").textContent = money(character.money);
-  $("statEnergy").textContent = (character.energy ?? 0) + " / 100";
-  $("statMood").textContent = (character.mood ?? 0) + " / 100";
-  $("energyBar").style.width = Math.max(0, Math.min(100, Number(character.energy) || 0)) + "%";
-  $("moodBar").style.width = Math.max(0, Math.min(100, Number(character.mood) || 0)) + "%";
-  $("currentActivity").textContent = character.currentActivity || "Santai";
-  $("activityChip").textContent = "● " + (character.currentActivity || "Warga aktif");
-  updateMapCharacter();
-
-  $("characterBio").textContent = settings.bio || "Belum ada bio karakter.";
-  $("previewBio").textContent = settings.bio || "Belum ada bio karakter.";
-  $("previewName").textContent = character.displayName || "Warga Aurelith";
-
+  const put = (id, value) => { const el = $(id); if (el) el.textContent = value; };
+  const width = (id, value) => { const el = $(id); if (el) el.style.width = value; };
+  const name = character.displayName || "Penghuni Pulau";
+  put("characterName", name);
+  put("usernameLabel", currentUser ? "@" + currentUser.username + " · Penghuni Aurelith" : "Penghuni Aurelith");
+  put("statBalance", money(character.money));
+  put("sideBalance", money(character.money));
+  put("walletBalance", money(character.money));
+  put("statEnergy", (character.energy ?? 0) + " / 100");
+  put("statMood", (character.mood ?? 0) + " / 100");
+  width("energyBar", Math.max(0, Math.min(100, Number(character.energy) || 0)) + "%");
+  width("moodBar", Math.max(0, Math.min(100, Number(character.mood) || 0)) + "%");
+  put("currentActivity", character.currentActivity || "Merawat pulau");
+  put("activityChip", "● " + (character.currentActivity || "Penghuni aktif"));
+  put("characterBio", settings.bio || "Tulis bio singkat tentang dirimu di pengaturan karakter.");
+  put("previewBio", settings.bio || "Belum ada bio karakter.");
+  put("previewName", name);
   const avatarClass = "avatar skin-" + settings.skinTone + " outfit-" + settings.outfit;
-  $("avatar").className = avatarClass;
-  $("previewAvatar").className = avatarClass;
+  const avatar = $("avatar"); if (avatar) avatar.className = avatarClass;
+  const preview = $("previewAvatar"); if (preview) preview.className = avatarClass;
 }
 
 async function loadCareer() {
@@ -1536,310 +1325,6 @@ async function startGameActivity(activityType) {
   } catch (error) {
     showGameMessage(error.message, false);
   }
-}
-
-function updateMapCharacter() {
-  const marker = $("mapCharacter");
-  if (!marker || !character) return;
-  const x = Math.max(25, Math.min(1175, Number(character.x) || 600));
-  const y = Math.max(25, Math.min(775, Number(character.y) || 400));
-  marker.style.left = (x / 1200 * 100) + "%";
-  marker.style.top = (y / 800 * 100) + "%";
-  marker.title = "Posisi karakter: " + Math.round(x) + ", " + Math.round(y);
-}
-
-$("jobSearch").addEventListener("input", event => {
-  jobSearchTerm = event.target.value;
-  renderJobs();
-});
-$("jobSort").addEventListener("change", event => {
-  jobSortMode = event.target.value;
-  renderJobs();
-});
-
-async function visit(place, x, y) {
-  try {
-    if (!realtimeSend({type:"move",x,y})) throw new Error("Koneksi WebSocket terputus. Tunggu tersambung kembali.");
-    if (character) {
-      character.x = Math.max(25,Math.min(1175,Number(x)));
-      character.y = Math.max(25,Math.min(775,Number(y)));
-    }
-    updateMapCharacter();
-    refreshMapPlayers();
-    $("mapLocation").textContent = "📍 Lokasi: " + place;
-    addEvent("Kamu berpindah ke " + place + ".");
-    $("activityChip").textContent = "● Menjelajah: " + place;
-  } catch (error) {
-    addEvent("Gagal memperbarui lokasi: " + error.message);
-  }
-}
-
-function showTab(tabId, button) {
-  document.querySelectorAll(".tab-panel").forEach(panel => {
-    panel.classList.toggle("active", panel.id === tabId);
-  });
-
-  document.querySelectorAll(".tabs button").forEach(tab => {
-    tab.classList.toggle("active", tab.dataset.tab === tabId);
-  });
-
-  if (button && button.dataset.tab) {
-    button.classList.add("active");
-  }
-
-  if (tabId === "universeTab") { loadUniverseData(); }
-  if (tabId === "walletTab") loadWallet().catch(e => addEvent(e.message));
-  if (tabId === "jobsTab" && !jobs.length) loadJobs().catch(e => addEvent(e.message));
-  if (tabId === "settingsTab") loadSettings().catch(e => addEvent(e.message));
-  if (tabId === "gameTab") loadGameState().catch(e => showGameMessage(e.message, false));
-  if (tabId === "lifeTab") loadLivingWorld();
-  if (tabId === "socialTab") refreshSocial().catch(e => setSocialStatus(e.message, false));
-  if (tabId === "homeTab") refreshMapPlayers();
-}
-
-async function refreshAll() {
-  const me = await api("/api/me");
-  currentUser = me.user;
-  character = me.character;
-  updateCharacterUI();
-
-  const results = await Promise.allSettled([
-    loadJobs(),
-    loadWallet(),
-    loadSettings(),
-    loadGameState(),
-    loadCareer(),
-    loadNeeds(),
-    loadBusinesses(),
-    loadCityLife()
-  ]);
-
-  for (const result of results) {
-    if (result.status === "rejected") {
-      addEvent("Gagal memuat sebagian data: " + result.reason.message);
-    }
-  }
-}
-
-function setSocialStatus(message, good = true) {
-  const el = $("chatMessageStatus");
-  if (!el) return;
-  el.style.color = good ? "var(--green)" : "var(--red)";
-  el.textContent = message || "";
-}
-
-function selectChatChannel(channel, button) {
-  if (!["global","local","whisper"].includes(channel)) return;
-  if (channel === "whisper" && !whisperTargetId) {
-    setSocialStatus("Pilih pemain dari daftar warga terlebih dahulu.", false);
-    return;
-  }
-  socialChannel = channel;
-  document.querySelectorAll("[data-channel]").forEach(el => el.classList.toggle("active", el.dataset.channel === channel));
-  $("whisperTarget").classList.toggle("hidden", channel !== "whisper");
-  setSocialStatus("");
-  loadChat().catch(e => setSocialStatus(e.message, false));
-}
-
-function clearWhisper() {
-  whisperTargetId = "";
-  whisperTargetName = "";
-  socialChannel = "global";
-  document.querySelectorAll("[data-channel]").forEach(el => el.classList.toggle("active", el.dataset.channel === "global"));
-  $("whisperTarget").classList.add("hidden");
-  loadChat().catch(e => setSocialStatus(e.message, false));
-}
-
-async function transferMoneyTo(playerId, playerName) {
-  const raw = prompt("Nominal uang yang dikirim ke " + playerName + " (1–100.000):");
-  if (raw === null) return;
-  const amount = Number(raw.trim());
-  if (!Number.isSafeInteger(amount) || amount < 1 || amount > 100000) {
-    setSocialStatus("Nominal harus bilangan bulat 1–100.000.", false);
-    return;
-  }
-  const description = (prompt("Catatan transfer (opsional):", "Hadiah dari warga Aurelith") || "").slice(0,80);
-  try {
-    if (!realtimeSend({type:"money-transfer",targetCharacterId:playerId,amount,description})) throw new Error("Koneksi WebSocket terputus.");
-    setSocialStatus("Transfer dikirim melalui WebSocket...", true);
-  } catch(error) {
-    setSocialStatus(error.message, false);
-  }
-}
-
-async function tradeItemTo(playerId, playerName) {
-  const choice = prompt("Barang untuk " + playerName + ":\nmeal = Paket Makan\nenergy_drink = Minuman Energi\nfirst_aid = Kotak P3K\n\nMasukkan kode barang:");
-  if (choice === null) return;
-  const itemKey = choice.trim().toLowerCase();
-  if (!["meal","energy_drink","first_aid"].includes(itemKey)) {
-    setSocialStatus("Kode barang tidak dikenal. Gunakan meal, energy_drink, atau first_aid.", false);
-    return;
-  }
-  const rawQuantity = prompt("Berapa barang yang dikirim? (1–20)", "1");
-  if (rawQuantity === null) return;
-  const quantity = Number(rawQuantity.trim());
-  if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 20) {
-    setSocialStatus("Jumlah barang harus bilangan bulat 1–20.", false);
-    return;
-  }
-  try {
-    if (!realtimeSend({type:"item-transfer",targetCharacterId:playerId,itemKey,quantity})) throw new Error("Koneksi WebSocket terputus.");
-    setSocialStatus("Pengiriman barang dikirim melalui WebSocket...", true);
-  } catch(error) {
-    setSocialStatus(error.message, false);
-  }
-}
-
-function realtimeSend(packet) {
-  if (!realtimeSocket || realtimeSocket.readyState !== WebSocket.OPEN) return false;
-  try { realtimeSocket.send(JSON.stringify(packet)); return true; } catch { return false; }
-}
-function connectRealtime() {
-  if (!token || realtimeSocket?.readyState === WebSocket.OPEN || realtimeSocket?.readyState === WebSocket.CONNECTING) return;
-  realtimeManualClose = false;
-  const scheme = location.protocol === "https:" ? "wss:" : "ws:";
-  const socket = new WebSocket(scheme + "//" + location.host + "/api/realtime", ["aurelith-v1", "bearer." + token]);
-  realtimeSocket = socket;
-  socket.addEventListener("open", () => {
-    realtimeReconnectDelay = 1000; setStatus("WebSocket realtime aktif");
-    if (realtimeHeartbeatTimer) clearInterval(realtimeHeartbeatTimer);
-    realtimeHeartbeatTimer = setInterval(() => realtimeSend({type:"ping"}), 20000);
-    refreshSocial().catch(() => {});
-  });
-  socket.addEventListener("message", event => {
-    let p; try { p = JSON.parse(event.data); } catch { return; }
-    if (p.type === "snapshot") {
-      realtimePlayers.clear(); (p.players || []).forEach(player => { realtimePlayers.set(String(player.characterId),player); upsertMapPlayer(player); });
-    } else if (p.type === "position") {
-      if (p.player?.characterId) { realtimePlayers.set(String(p.player.characterId),p.player); upsertMapPlayer(p.player); }
-    } else if (p.type === "presence") {
-      const player=p.player||{}, id=String(player.characterId||""); if(!id)return;
-      if(p.action==="offline"){realtimePlayers.delete(id);removeMapPlayer(id);}
-      else {realtimePlayers.set(id,player);upsertMapPlayer(player);}
-    } else if (p.type === "chat") appendRealtimeChat(p.message);
-    else if (p.type === "friend-update") {
-      if (p.targetCharacterId && p.targetCharacterId !== character?.id) return;
-      if ($("friendsMessage")) $("friendsMessage").textContent=p.message||"Status pertemanan diperbarui.";
-      setSocialStatus(p.message||"Status pertemanan diperbarui.",true); refreshSocial().catch(()=>{});
-    } else if (p.type === "money-received") {
-      if(p.targetCharacterId && p.targetCharacterId !== character?.id)return;
-      setSocialStatus((p.fromName||"Warga")+" mengirim "+money(p.amount)+" kepadamu.",true);loadWallet().catch(()=>{});refreshAll().catch(()=>{});
-    } else if (p.type === "item-received") {
-      if(p.targetCharacterId && p.targetCharacterId !== character?.id)return;
-      setSocialStatus((p.fromName||"Warga")+" mengirim "+p.quantity+" × "+p.itemName+".",true);loadGameState().catch(()=>{});
-    } else if (p.type === "transaction-ack") {
-      setSocialStatus(p.message||"Transaksi selesai.",true);
-      if(p.action==="money-transfer")loadWallet().catch(()=>{});
-      if(p.action==="item-transfer")loadGameState().catch(()=>{});
-      refreshAll().catch(()=>{});
-    } else if (p.type === "error") {
-      setSocialStatus(p.message||"Interaksi realtime gagal.",false);
-      if($("friendsMessage"))$("friendsMessage").textContent=p.message||"Interaksi realtime gagal.";
-    } else if (p.type === "connected") setStatus("WebSocket realtime aktif");
-  });
-  socket.addEventListener("close", () => {
-    if(realtimeSocket===socket)realtimeSocket=null;
-    if(realtimeHeartbeatTimer)clearInterval(realtimeHeartbeatTimer);realtimeHeartbeatTimer=null;
-    if(realtimeManualClose||!token)return;
-    setStatus("Menghubungkan ulang WebSocket...",false);
-    realtimeReconnectTimer=setTimeout(()=>{realtimeReconnectDelay=Math.min(15000,realtimeReconnectDelay*1.7);connectRealtime();},realtimeReconnectDelay);
-  });
-  socket.addEventListener("error",()=>{try{socket.close();}catch{}});
-}
-function upsertMapPlayer(player) {
-  if(!player?.characterId||Number(player.online)===0)return;
-  const layer=$("mapPlayersLayer");if(!layer)return;
-  const id=String(player.characterId);
-  let marker=layer.querySelector('[data-player-id="'+CSS.escape(id)+'"]');
-  if(!marker){
-    marker=document.createElement("button");marker.className="map-player";marker.dataset.playerId=id;
-    marker.addEventListener("click",event=>{event.stopPropagation();showTab("socialTab");openWhisper(marker.dataset.playerId,marker.dataset.name||"Warga").catch(error=>setSocialStatus(error.message,false));});
-    layer.append(marker);
-  }
-  const x=Math.max(25,Math.min(1175,Number(player.x)||600)),y=Math.max(25,Math.min(775,Number(player.y)||400));
-  marker.style.left=(x/1200*100)+"%";marker.style.top=(y/800*100)+"%";
-  marker.textContent=player.outfit==="formal"?"👔":player.outfit==="worker"?"🧑‍🔧":player.outfit==="sport"?"🏃":"🧑";
-  marker.dataset.name=player.displayName||"Warga";marker.title=(player.displayName||"Warga")+" · klik untuk chat pribadi";marker.setAttribute("aria-label",marker.title);
-}
-function removeMapPlayer(id) {
-  const layer=$("mapPlayersLayer");const marker=layer?.querySelector('[data-player-id="'+CSS.escape(String(id))+'"]');if(marker)marker.remove();
-}
-function appendRealtimeChat(msg) {
-  if(!msg||!msg.message||!token)return;
-  const relevant=msg.channel===socialChannel&&(msg.channel!=="whisper"||msg.senderCharacterId===whisperTargetId||msg.recipientCharacterId===whisperTargetId);
-  if(!relevant)return;
-  const box=$("chatMessages");if(!box)return;const empty=box.querySelector(".empty");if(empty)empty.remove();
-  const atBottom=box.scrollHeight-box.scrollTop-box.clientHeight<45;
-  const line=document.createElement("div");line.className="chat-line";
-  const sender=document.createElement("strong");sender.textContent=(msg.senderName||"Warga")+": ";
-  const body=document.createElement("span");body.textContent=msg.message;
-  const time=document.createElement("span");time.className="chat-time";
-  time.textContent=msg.createdAt?new Date(String(msg.createdAt).replace(" ","T")+(String(msg.createdAt).endsWith("Z")?"":"Z")).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}):"";
-  line.append(sender,body,time);box.append(line);while(box.children.length>100)box.firstElementChild.remove();if(atBottom)box.scrollTop=box.scrollHeight;
-}
-let mapPlayersRefreshBusy = false;
-let lastPresenceHeartbeat = 0;
-
-async function refreshMapPlayers() {
-  if (!token || mapPlayersRefreshBusy) return;
-  mapPlayersRefreshBusy = true;
-  try {
-    // Heartbeat less often than position reads to avoid unnecessary D1 writes.
-    const now = Date.now();
-    if (now - lastPresenceHeartbeat > 10000) {
-      
-      lastPresenceHeartbeat = now;
-    }
-    const data = await api("/api/social/players");
-    const layer = $("mapPlayersLayer");
-    if (!layer) return;
-    const seen = new Set();
-    for (const player of data.players || []) {
-      if (Number(player.online) !== 1) continue;
-      const id = String(player.characterId);
-      seen.add(id);
-      const x = Math.max(25,Math.min(1175,Number(player.x)||600));
-      const y = Math.max(25,Math.min(775,Number(player.y)||400));
-      let marker = layer.querySelector('[data-player-id="' + CSS.escape(id) + '"]');
-      if (!marker) {
-        marker = document.createElement("button");
-        marker.className = "map-player";
-        marker.dataset.playerId = id;
-        marker.addEventListener("click", event => {
-          event.stopPropagation();
-          showTab("socialTab");
-          openWhisper(marker.dataset.playerId, marker.dataset.name || "Warga").catch(error => setSocialStatus(error.message,false));
-        });
-        layer.append(marker);
-      }
-      marker.style.left = (x / 1200 * 100) + "%";
-      marker.style.top = (y / 800 * 100) + "%";
-      marker.textContent = player.outfit === "formal" ? "👔" : player.outfit === "worker" ? "🧑‍🔧" : player.outfit === "sport" ? "🏃" : "🧑";
-      marker.dataset.name = player.displayName || "Warga";
-      marker.title = (player.displayName || "Warga") + " · klik untuk chat pribadi";
-      marker.setAttribute("aria-label", marker.title);
-    }
-    // Remove only markers for players no longer online; keep existing nodes to avoid flicker.
-    for (const marker of Array.from(layer.querySelectorAll("[data-player-id]"))) {
-      if (!seen.has(marker.dataset.playerId)) marker.remove();
-    }
-  } catch (error) {
-    // Map presence is optional; do not interrupt movement or gameplay if social service is unavailable.
-  } finally {
-    mapPlayersRefreshBusy = false;
-  }
-}
-
-async function openWhisper(playerId, playerName) {
-  whisperTargetId = playerId;
-  whisperTargetName = playerName;
-  socialChannel = "whisper";
-  $("whisperTargetName").textContent = playerName;
-  $("whisperTarget").classList.remove("hidden");
-  document.querySelectorAll("[data-channel]").forEach(el => el.classList.toggle("active", el.dataset.channel === "whisper"));
-  setSocialStatus("Chat pribadi dengan " + playerName, true);
-  await loadChat();
-  $("chatInput").focus();
 }
 
 async function refreshSocial() {
