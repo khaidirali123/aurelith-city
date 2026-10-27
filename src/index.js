@@ -217,7 +217,13 @@ async function handleApi(request, env) {
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return json({ error: "WebSocket upgrade diperlukan." }, 426);
     }
-    const session = await getSession(request, db);
+    // Browser WebSocket APIs cannot attach Authorization headers; accept the short-lived app session token via query.
+    const wsToken = url.searchParams.get("token") || "";
+    if (!wsToken || wsToken.length > 200) return json({ error: "Sesi WebSocket tidak valid." }, 401);
+    const sessionRequest = new Request("https://session.internal/", {
+      headers: { "Authorization": "Bearer " + wsToken }
+    });
+    const session = await getSession(sessionRequest, db);
     if (!session) return json({ error: "Silakan login kembali." }, 401);
     const id = env.REALTIME.idFromName("aurelith-city-world");
     const stub = env.REALTIME.get(id);
@@ -1350,6 +1356,107 @@ export class AurelithRealtime {
       }
       if (data.type === "chat") {
         await this.handleChat(socket, data);
+        return;
+      }
+      if (data.type === "friend-request") {
+        const targetId = String(data.targetCharacterId || "");
+        if (!targetId || targetId === attachment.characterId) throw new Error("Pemain tujuan tidak valid.");
+        const target = await this.env.DB.prepare("SELECT id FROM characters WHERE id = ?").bind(targetId).first();
+        if (!target) throw new Error("Pemain tidak ditemukan.");
+        const existing = await this.env.DB.prepare(`SELECT id, status FROM player_friendships
+          WHERE (requester_character_id = ? AND addressee_character_id = ?)
+             OR (requester_character_id = ? AND addressee_character_id = ?) LIMIT 1`)
+          .bind(attachment.characterId,targetId,targetId,attachment.characterId).first();
+        if (existing?.status === "accepted") throw new Error("Kalian sudah berteman.");
+        if (existing?.status === "pending") {
+          if (await this.env.DB.prepare("SELECT id FROM player_friendships WHERE id = ? AND addressee_character_id = ?").bind(existing.id,attachment.characterId).first()) {
+            await this.env.DB.prepare("UPDATE player_friendships SET status = 'accepted', updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(existing.id).run();
+            await this.broadcast({type:"friend-update",message:"Permintaan pertemanan diterima.",targetCharacterId:targetId,player:this.publicPlayer(socket)},null,targetId);
+            socket.send(JSON.stringify({type:"friend-update",message:"Pertemanan otomatis diterima."}));
+            return;
+          }
+          throw new Error("Permintaan pertemanan sudah dikirim.");
+        }
+        await this.env.DB.prepare(`INSERT INTO player_friendships
+          (id, requester_character_id, addressee_character_id, status)
+          VALUES (?, ?, ?, 'pending')`)
+          .bind(crypto.randomUUID(),attachment.characterId,targetId).run();
+        await this.broadcast({type:"friend-update",message:"Kamu menerima permintaan pertemanan baru.",targetCharacterId:targetId,fromCharacterId:attachment.characterId,fromName:attachment.displayName},null,targetId);
+        socket.send(JSON.stringify({type:"friend-update",message:"Permintaan pertemanan terkirim."}));
+        return;
+      }
+      if (data.type === "friend-response") {
+        const requestId = String(data.requestId || "");
+        const accept = data.accept === true;
+        const request = await this.env.DB.prepare(`SELECT id, requester_character_id AS requesterId
+          FROM player_friendships WHERE id = ? AND addressee_character_id = ? AND status = 'pending'`)
+          .bind(requestId,attachment.characterId).first();
+        if (!request) throw new Error("Permintaan tidak ditemukan atau sudah diproses.");
+        await this.env.DB.prepare("UPDATE player_friendships SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+          .bind(accept ? "accepted" : "declined",requestId).run();
+        await this.broadcast({type:"friend-update",message:accept ? "Permintaan pertemanan diterima." : "Permintaan pertemanan ditolak.",targetCharacterId:request.requesterId,fromCharacterId:attachment.characterId,fromName:attachment.displayName},null,request.requesterId);
+        socket.send(JSON.stringify({type:"friend-update",message:accept ? "Pertemanan diterima." : "Permintaan ditolak."}));
+        return;
+      }
+      if (data.type === "money-transfer") {
+        const targetId = String(data.targetCharacterId || "");
+        const amount = Number(data.amount);
+        const description = String(data.description || "Transfer antarpemain").trim().slice(0,80) || "Transfer antarpemain";
+        if (!targetId || targetId === attachment.characterId) throw new Error("Pilih pemain lain sebagai penerima.");
+        if (!Number.isSafeInteger(amount) || amount < 1 || amount > 100000) throw new Error("Nominal harus bilangan bulat antara 1 dan 100.000.");
+        const recipient = await this.env.DB.prepare("SELECT id, display_name AS displayName FROM characters WHERE id = ?").bind(targetId).first();
+        if (!recipient) throw new Error("Pemain penerima tidak ditemukan.");
+        const senderLedgerId = crypto.randomUUID(), receiverLedgerId = crypto.randomUUID();
+        const results = await this.env.DB.batch([
+          this.env.DB.prepare("UPDATE characters SET money = money - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND money >= ?").bind(amount,attachment.characterId,amount),
+          this.env.DB.prepare(`INSERT INTO wallet_transactions (id, character_id, transaction_type, amount, description)
+            SELECT ?, ?, 'expense', ?, ? WHERE changes() > 0`).bind(senderLedgerId,attachment.characterId,amount,"Transfer ke "+recipient.displayName+": "+description),
+          this.env.DB.prepare(`UPDATE characters SET money = money + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND EXISTS (SELECT 1 FROM wallet_transactions WHERE id = ?)`).bind(amount,targetId,senderLedgerId),
+          this.env.DB.prepare(`INSERT INTO wallet_transactions (id, character_id, transaction_type, amount, description)
+            SELECT ?, ?, 'income', ?, ? WHERE EXISTS (SELECT 1 FROM wallet_transactions WHERE id = ?)`).bind(receiverLedgerId,targetId,amount,"Transfer dari "+attachment.displayName+": "+description,senderLedgerId)
+        ]);
+        if (!results[0]?.meta?.changes) throw new Error("Saldo tidak cukup untuk transfer.");
+        await this.broadcast({type:"money-received",targetCharacterId:targetId,fromName:attachment.displayName,amount},null,targetId);
+        socket.send(JSON.stringify({type:"transaction-ack",action:"money-transfer",message:"Transfer berhasil ke "+recipient.displayName+".",amount}));
+        return;
+      }
+      if (data.type === "item-transfer") {
+        const targetId = String(data.targetCharacterId || "");
+        const itemKey = String(data.itemKey || "");
+        const quantity = Number(data.quantity);
+        if (!targetId || targetId === attachment.characterId) throw new Error("Pilih pemain lain sebagai penerima.");
+        if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 20) throw new Error("Jumlah barang harus antara 1 dan 20.");
+        if (!/^[a-z0-9_-]{1,60}$/.test(itemKey)) throw new Error("Jenis barang tidak valid.");
+        const recipient = await this.env.DB.prepare("SELECT id, display_name AS displayName FROM characters WHERE id = ?").bind(targetId).first();
+        if (!recipient) throw new Error("Pemain penerima tidak ditemukan.");
+        await this.env.DB.batch([
+          this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS character_inventory (
+            id TEXT PRIMARY KEY, character_id TEXT NOT NULL, item_key TEXT NOT NULL,
+            item_name TEXT NOT NULL, quantity INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(character_id,item_key),
+            FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE)`),
+          this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS player_item_transfers (
+            id TEXT PRIMARY KEY, sender_character_id TEXT NOT NULL, recipient_character_id TEXT NOT NULL,
+            item_key TEXT NOT NULL, item_name TEXT NOT NULL, quantity INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(sender_character_id) REFERENCES characters(id) ON DELETE CASCADE,
+            FOREIGN KEY(recipient_character_id) REFERENCES characters(id) ON DELETE CASCADE)`)
+        ]);
+        const owned = await this.env.DB.prepare("SELECT item_name FROM character_inventory WHERE character_id = ? AND item_key = ? AND quantity >= ?")
+          .bind(attachment.characterId,itemKey,quantity).first();
+        if (!owned) throw new Error("Barang atau jumlahnya tidak tersedia di inventarismu.");
+        const transferId = crypto.randomUUID();
+        const results = await this.env.DB.batch([
+          this.env.DB.prepare("UPDATE character_inventory SET quantity = quantity - ?, updated_at = CURRENT_TIMESTAMP WHERE character_id = ? AND item_key = ? AND quantity >= ?").bind(quantity,attachment.characterId,itemKey,quantity),
+          this.env.DB.prepare(`INSERT INTO player_item_transfers (id,sender_character_id,recipient_character_id,item_key,item_name,quantity)
+            SELECT ?,?,?,?,?,? WHERE changes() > 0`).bind(transferId,attachment.characterId,targetId,itemKey,owned.item_name,quantity),
+          this.env.DB.prepare(`INSERT INTO character_inventory (id,character_id,item_key,item_name,quantity)
+            SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM player_item_transfers WHERE id = ?)
+            ON CONFLICT(character_id,item_key) DO UPDATE SET quantity = character_inventory.quantity + excluded.quantity, updated_at = CURRENT_TIMESTAMP`).bind(crypto.randomUUID(),targetId,itemKey,owned.item_name,quantity,transferId)
+        ]);
+        if (!results[0]?.meta?.changes) throw new Error("Barang atau jumlahnya tidak cukup.");
+        await this.broadcast({type:"item-received",targetCharacterId:targetId,fromName:attachment.displayName,itemName:owned.item_name,quantity},null,targetId);
+        socket.send(JSON.stringify({type:"transaction-ack",action:"item-transfer",message:quantity+" × "+owned.item_name+" berhasil dikirim ke "+recipient.displayName+"."}));
         return;
       }
       if (data.type === "friend-event") {
