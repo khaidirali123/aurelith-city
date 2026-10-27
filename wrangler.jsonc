@@ -11,6 +11,16 @@
     "binding": "ASSETS"
   },
 
+  "durable_objects": {
+    "bindings": [
+      { "name": "REALTIME", "class_name": "AurelithRealtime" }
+    ]
+  },
+
+  "migrations": [
+    { "tag": "v1-realtime", "new_sqlite_classes": ["AurelithRealtime"] }
+  ],
+
   "d1_databases": [
     {
       "binding": "DB",
