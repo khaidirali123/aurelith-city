@@ -1070,20 +1070,8 @@ async function handleApi(request, env) {
       return json({ success: true, message: inventoryItem.item_name + " digunakan.", character: updated, health: state?.health ?? 100 });
     }
 
-    if (path === "/api/game/lay-low" && method === "POST") {
-      const state = await db.prepare("SELECT wanted_level FROM character_game_state WHERE character_id = ?").bind(session.character_id).first();
-      if (!Number(state?.wanted_level || 0)) return json({ success: true, message: "Kamu tidak sedang diburu." });
-      const recent = await db.prepare(`
-        SELECT id FROM activities WHERE character_id = ? AND activity_type = 'lay_low'
-          AND started_at > datetime('now', '-30 minutes') LIMIT 1
-      `).bind(session.character_id).first();
-      if (recent) return json({ error: "Kamu sudah bersembunyi. Coba lagi setelah 30 menit." }, 429);
-      await db.batch([
-        db.prepare("UPDATE character_game_state SET wanted_level = MAX(0, wanted_level - 1), updated_at = CURRENT_TIMESTAMP WHERE character_id = ?").bind(session.character_id),
-        db.prepare("UPDATE characters SET current_activity = 'Bersembunyi', energy = MAX(0, energy - 5), updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(session.character_id),
-        db.prepare("INSERT INTO activities (id, character_id, activity_type, details, status) VALUES (?, ?, 'lay_low', 'Bersembunyi untuk menurunkan tingkat buronan', 'completed')").bind(crypto.randomUUID(), session.character_id)
-      ]);
-      return json({ success: true, message: "Kamu bersembunyi dan menurunkan tingkat buronan satu tingkat." });
+    if (path === "/api/game/lay-low") {
+      return json({ error: "Mekanisme buronan sudah dihapus dari Aurelith City." }, 410);
     }
 
     return json({ error: "Endpoint gameplay tidak ditemukan." }, 404);
