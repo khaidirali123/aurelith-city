@@ -1227,7 +1227,8 @@ async function loadGameState() {
     const remaining = Math.max(0, end.getTime() - Date.now());
     const hours = Math.floor(remaining / 3600000);
     const minutes = Math.floor((remaining % 3600000) / 60000);
-    $("gameActivityStatus").textContent = (active === "rest" ? "🛌 Sedang istirahat" : "🧰 Sedang kerja sampingan") + " · tersisa sekitar " + hours + " jam " + minutes + " menit.";
+    const activeLabels = {rest:"🛌 Sedang istirahat",side_job:"🧰 Sedang kerja sampingan",training:"🏋️ Sedang latihan",study:"📚 Sedang belajar",volunteer:"🤝 Sedang berkegiatan sukarela",craft:"🛠️ Sedang membuat kerajinan"};
+    $("gameActivityStatus").textContent = (activeLabels[active] || "⏳ Aktivitas berlangsung") + " · tersisa sekitar " + hours + " jam " + minutes + " menit.";
   } else {
     $("gameActivityStatus").textContent = data.settledActivity?.message || "Tidak ada aktivitas berjalan. Pilih aktivitas dan durasi.";
   }
