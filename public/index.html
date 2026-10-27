@@ -762,6 +762,50 @@ let authMode = "login";
 
 const $ = id => document.getElementById(id);
 
+// Central tab navigation: all top-level pages use this function.
+function showTab(tabId, button = null) {
+  const allowedTabs = new Set(["universeTab", "cityTab", "socialTab", "settingsTab"]);
+  if (!allowedTabs.has(tabId)) return;
+  const target = $(tabId);
+  if (!target || !$("cityView") || $("cityView").classList.contains("hidden")) return;
+
+  document.querySelectorAll(".tab-panel").forEach(panel => {
+    panel.classList.toggle("active", panel.id === tabId);
+    panel.setAttribute("aria-hidden", panel.id === tabId ? "false" : "true");
+  });
+  document.querySelectorAll(".tabs [data-tab]").forEach(tabButton => {
+    const active = tabButton.dataset.tab === tabId;
+    tabButton.classList.toggle("active", active);
+    tabButton.setAttribute("aria-current", active ? "page" : "false");
+  });
+
+  if (button && button.dataset && button.dataset.tab !== tabId) {
+    button.classList.toggle("active", false);
+  }
+
+  // Load live data only when the corresponding page is opened.
+  if (tabId === "socialTab" && token) {
+    refreshSocial().catch(error => {
+      const message = $("friendsMessage");
+      if (message) message.textContent = "Daftar teman belum bisa dimuat: " + error.message;
+      addEvent("Gagal memuat halaman teman: " + error.message);
+    });
+  }
+  if (tabId === "cityTab" && character) updateCharacterUI();
+  if (tabId === "settingsTab" && character) {
+    if ($("bioInput")) $("bioInput").value = settings.bio || "";
+    if ($("skinInput")) $("skinInput").value = settings.skinTone || "medium";
+    if ($("outfitInput")) $("outfitInput").value = settings.outfit || "casual";
+    if ($("previewName")) $("previewName").textContent = character.displayName || "Penghuni Pulau";
+    if ($("previewBio")) $("previewBio").textContent = settings.bio || "Belum ada bio karakter.";
+  }
+  if (tabId === "universeTab" && $("universeCanvas")) {
+    if (typeof drawUniverse === "function") drawUniverse();
+    if (typeof renderGarden === "function") renderGarden();
+    if (typeof renderIslandShop === "function") renderIslandShop();
+  }
+}
+
 function money(value) {
   return new Intl.NumberFormat("id-ID", {
     maximumFractionDigits: 0
