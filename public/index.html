@@ -835,6 +835,9 @@ let socialChannel = "global";
 let whisperTargetId = "";
 let whisperTargetName = "";
 let socialPollBusy = false;
+let realtimeSocket = null, realtimeReconnectTimer = null, realtimeHeartbeatTimer = null;
+let realtimeReconnectDelay = 1000, realtimeManualClose = false;
+let realtimePlayers = new Map();
 let settings = { bio:"", skinTone:"medium", outfit:"casual" };
 let authMode = "login";
 
@@ -950,6 +953,7 @@ async function enterCity() {
     currentUser = me.user;
     character = me.character;
     await refreshAll();
+    connectRealtime();
     addEvent("Kamu masuk ke Aurelith City.");
   } catch (error) {
     if (error.message.toLowerCase().includes("sesi")) {
@@ -962,6 +966,13 @@ async function enterCity() {
 }
 
 async function logout(callServer = true) {
+  realtimeManualClose = true;
+  if (realtimeReconnectTimer) clearTimeout(realtimeReconnectTimer);
+  if (realtimeHeartbeatTimer) clearInterval(realtimeHeartbeatTimer);
+  realtimeReconnectTimer = realtimeHeartbeatTimer = null;
+  if (realtimeSocket) { try { realtimeSocket.close(1000, "logout"); } catch {} }
+  realtimeSocket = null; realtimePlayers.clear();
+  const mapLayer = $("mapPlayersLayer"); if (mapLayer) mapLayer.replaceChildren();
   if (callServer && token) {
     try {
       await api("/api/logout", { method:"POST", body:"{}" });
@@ -1385,14 +1396,10 @@ $("jobSort").addEventListener("change", event => {
 
 async function visit(place, x, y) {
   try {
-    const moved = await api("/api/move", {
-      method:"POST",
-      body:JSON.stringify({x,y})
-    });
-
+    if (!realtimeSend({type:"move",x,y})) throw new Error("Koneksi WebSocket terputus. Tunggu tersambung kembali.");
     if (character) {
-      character.x = x;
-      character.y = y;
+      character.x = Math.max(25,Math.min(1175,Number(x)));
+      character.y = Math.max(25,Math.min(775,Number(y)));
     }
     updateMapCharacter();
     refreshMapPlayers();
@@ -1484,10 +1491,8 @@ async function transferMoneyTo(playerId, playerName) {
   }
   const description = (prompt("Catatan transfer (opsional):", "Hadiah dari warga Aurelith") || "").slice(0,80);
   try {
-    const result = await api("/api/social/transfer", {method:"POST",body:JSON.stringify({targetCharacterId:playerId,amount,description})});
-    setSocialStatus(result.message, true);
-    await loadWallet();
-    await refreshSocial();
+    if (!realtimeSend({type:"money-transfer",targetCharacterId:playerId,amount,description})) throw new Error("Koneksi WebSocket terputus.");
+    setSocialStatus("Transfer dikirim melalui WebSocket...", true);
   } catch(error) {
     setSocialStatus(error.message, false);
   }
@@ -1509,15 +1514,100 @@ async function tradeItemTo(playerId, playerName) {
     return;
   }
   try {
-    const result = await api("/api/social/trade/item", {method:"POST",body:JSON.stringify({targetCharacterId:playerId,itemKey,quantity})});
-    setSocialStatus(result.message, true);
-    await loadGameState();
-    await refreshSocial();
+    if (!realtimeSend({type:"item-transfer",targetCharacterId:playerId,itemKey,quantity})) throw new Error("Koneksi WebSocket terputus.");
+    setSocialStatus("Pengiriman barang dikirim melalui WebSocket...", true);
   } catch(error) {
     setSocialStatus(error.message, false);
   }
 }
 
+function realtimeSend(packet) {
+  if (!realtimeSocket || realtimeSocket.readyState !== WebSocket.OPEN) return false;
+  try { realtimeSocket.send(JSON.stringify(packet)); return true; } catch { return false; }
+}
+function connectRealtime() {
+  if (!token || realtimeSocket?.readyState === WebSocket.OPEN || realtimeSocket?.readyState === WebSocket.CONNECTING) return;
+  realtimeManualClose = false;
+  const scheme = location.protocol === "https:" ? "wss:" : "ws:";
+  const socket = new WebSocket(scheme + "//" + location.host + "/api/realtime?token=" + encodeURIComponent(token));
+  realtimeSocket = socket;
+  socket.addEventListener("open", () => {
+    realtimeReconnectDelay = 1000; setStatus("WebSocket realtime aktif");
+    if (realtimeHeartbeatTimer) clearInterval(realtimeHeartbeatTimer);
+    realtimeHeartbeatTimer = setInterval(() => realtimeSend({type:"ping"}), 20000);
+    refreshSocial().catch(() => {});
+  });
+  socket.addEventListener("message", event => {
+    let p; try { p = JSON.parse(event.data); } catch { return; }
+    if (p.type === "snapshot") {
+      realtimePlayers.clear(); (p.players || []).forEach(player => { realtimePlayers.set(String(player.characterId),player); upsertMapPlayer(player); });
+    } else if (p.type === "position") {
+      if (p.player?.characterId) { realtimePlayers.set(String(p.player.characterId),p.player); upsertMapPlayer(p.player); }
+    } else if (p.type === "presence") {
+      const player=p.player||{}, id=String(player.characterId||""); if(!id)return;
+      if(p.action==="offline"){realtimePlayers.delete(id);removeMapPlayer(id);}
+      else {realtimePlayers.set(id,player);upsertMapPlayer(player);}
+    } else if (p.type === "chat") appendRealtimeChat(p.message);
+    else if (p.type === "friend-update") {
+      if (p.targetCharacterId && p.targetCharacterId !== character?.id) return;
+      if ($("friendsMessage")) $("friendsMessage").textContent=p.message||"Status pertemanan diperbarui.";
+      setSocialStatus(p.message||"Status pertemanan diperbarui.",true); refreshSocial().catch(()=>{});
+    } else if (p.type === "money-received") {
+      if(p.targetCharacterId && p.targetCharacterId !== character?.id)return;
+      setSocialStatus((p.fromName||"Warga")+" mengirim "+money(p.amount)+" kepadamu.",true);loadWallet().catch(()=>{});refreshAll().catch(()=>{});
+    } else if (p.type === "item-received") {
+      if(p.targetCharacterId && p.targetCharacterId !== character?.id)return;
+      setSocialStatus((p.fromName||"Warga")+" mengirim "+p.quantity+" × "+p.itemName+".",true);loadGameState().catch(()=>{});
+    } else if (p.type === "transaction-ack") {
+      setSocialStatus(p.message||"Transaksi selesai.",true);
+      if(p.action==="money-transfer")loadWallet().catch(()=>{});
+      if(p.action==="item-transfer")loadGameState().catch(()=>{});
+      refreshAll().catch(()=>{});
+    } else if (p.type === "error") {
+      setSocialStatus(p.message||"Interaksi realtime gagal.",false);
+      if($("friendsMessage"))$("friendsMessage").textContent=p.message||"Interaksi realtime gagal.";
+    } else if (p.type === "connected") setStatus("WebSocket realtime aktif");
+  });
+  socket.addEventListener("close", () => {
+    if(realtimeSocket===socket)realtimeSocket=null;
+    if(realtimeHeartbeatTimer)clearInterval(realtimeHeartbeatTimer);realtimeHeartbeatTimer=null;
+    if(realtimeManualClose||!token)return;
+    setStatus("Menghubungkan ulang WebSocket...",false);
+    realtimeReconnectTimer=setTimeout(()=>{realtimeReconnectDelay=Math.min(15000,realtimeReconnectDelay*1.7);connectRealtime();},realtimeReconnectDelay);
+  });
+  socket.addEventListener("error",()=>{try{socket.close();}catch{}});
+}
+function upsertMapPlayer(player) {
+  if(!player?.characterId||Number(player.online)===0)return;
+  const layer=$("mapPlayersLayer");if(!layer)return;
+  const id=String(player.characterId);
+  let marker=layer.querySelector('[data-player-id="'+CSS.escape(id)+'"]');
+  if(!marker){
+    marker=document.createElement("button");marker.className="map-player";marker.dataset.playerId=id;
+    marker.addEventListener("click",event=>{event.stopPropagation();showTab("socialTab");openWhisper(marker.dataset.playerId,marker.dataset.name||"Warga").catch(error=>setSocialStatus(error.message,false));});
+    layer.append(marker);
+  }
+  const x=Math.max(25,Math.min(1175,Number(player.x)||600)),y=Math.max(25,Math.min(775,Number(player.y)||400));
+  marker.style.left=(x/1200*100)+"%";marker.style.top=(y/800*100)+"%";
+  marker.textContent=player.outfit==="formal"?"👔":player.outfit==="worker"?"🧑‍🔧":player.outfit==="sport"?"🏃":"🧑";
+  marker.dataset.name=player.displayName||"Warga";marker.title=(player.displayName||"Warga")+" · klik untuk chat pribadi";marker.setAttribute("aria-label",marker.title);
+}
+function removeMapPlayer(id) {
+  const layer=$("mapPlayersLayer");const marker=layer?.querySelector('[data-player-id="'+CSS.escape(String(id))+'"]');if(marker)marker.remove();
+}
+function appendRealtimeChat(msg) {
+  if(!msg||!msg.message||!token)return;
+  const relevant=msg.channel===socialChannel&&(msg.channel!=="whisper"||msg.senderCharacterId===whisperTargetId||msg.recipientCharacterId===whisperTargetId);
+  if(!relevant)return;
+  const box=$("chatMessages");if(!box)return;const empty=box.querySelector(".empty");if(empty)empty.remove();
+  const atBottom=box.scrollHeight-box.scrollTop-box.clientHeight<45;
+  const line=document.createElement("div");line.className="chat-line";
+  const sender=document.createElement("strong");sender.textContent=(msg.senderName||"Warga")+": ";
+  const body=document.createElement("span");body.textContent=msg.message;
+  const time=document.createElement("span");time.className="chat-time";
+  time.textContent=msg.createdAt?new Date(String(msg.createdAt).replace(" ","T")+(String(msg.createdAt).endsWith("Z")?"":"Z")).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}):"";
+  line.append(sender,body,time);box.append(line);while(box.children.length>100)box.firstElementChild.remove();if(atBottom)box.scrollTop=box.scrollHeight;
+}
 let mapPlayersRefreshBusy = false;
 let lastPresenceHeartbeat = 0;
 
@@ -1528,7 +1618,7 @@ async function refreshMapPlayers() {
     // Heartbeat less often than position reads to avoid unnecessary D1 writes.
     const now = Date.now();
     if (now - lastPresenceHeartbeat > 10000) {
-      await api("/api/social/presence", {method:"POST",body:"{}"});
+      
       lastPresenceHeartbeat = now;
     }
     const data = await api("/api/social/players");
@@ -1587,7 +1677,7 @@ async function refreshSocial() {
   if (socialPollBusy || !token) return;
   socialPollBusy = true;
   try {
-    await api("/api/social/presence", {method:"POST", body:"{}"});
+    
     const [players, friends] = await Promise.all([
       api("/api/social/players"),
       api("/api/social/friends")
@@ -1653,9 +1743,9 @@ function renderPlayers(players) {
         if (player.friendRequest === "incoming") {
           const pending = (await api("/api/social/friends")).friends.find(f => f.characterId === player.characterId && f.status === "pending" && f.direction === "incoming");
           if (!pending) throw new Error("Permintaan pertemanan tidak ditemukan.");
-          await api("/api/social/friends/respond", {method:"POST",body:JSON.stringify({requestId:pending.requestId,accept:true})});
+          if (!realtimeSend({type:"friend-response",requestId:pending.requestId,accept:true})) throw new Error("Koneksi WebSocket terputus.");
         } else {
-          await api("/api/social/friends/request", {method:"POST",body:JSON.stringify({targetCharacterId:player.characterId})});
+          if (!realtimeSend({type:"friend-request",targetCharacterId:player.characterId})) throw new Error("Koneksi WebSocket terputus.");
         }
         await refreshSocial();
       } catch (error) {
@@ -1693,7 +1783,7 @@ function renderFriends(friends) {
         button.textContent = accept ? "Terima" : "Tolak";
         button.addEventListener("click", async () => {
           try {
-            await api("/api/social/friends/respond",{method:"POST",body:JSON.stringify({requestId:item.requestId,accept})});
+            if (!realtimeSend({type:"friend-response",requestId:item.requestId,accept})) throw new Error("Koneksi WebSocket terputus.");
             $("friendsMessage").textContent = accept ? "Pertemanan diterima." : "Permintaan ditolak.";
             await refreshSocial();
           } catch(error) { $("friendsMessage").textContent = error.message; }
@@ -1751,12 +1841,11 @@ $("chatForm").addEventListener("submit", async event => {
   }
   $("chatSend").disabled = true;
   try {
-    const payload = {channel:socialChannel,message};
+    const payload = {type:"chat",channel:socialChannel,message};
     if (socialChannel === "whisper") payload.targetCharacterId = whisperTargetId;
-    await api("/api/social/messages",{method:"POST",body:JSON.stringify(payload)});
+    if (!realtimeSend(payload)) throw new Error("Koneksi WebSocket terputus. Tunggu tersambung kembali.");
     $("chatInput").value = "";
-    setSocialStatus("Pesan terkirim.",true);
-    await loadChat();
+    setSocialStatus("Mengirim pesan melalui WebSocket...",true);
   } catch(error) {
     setSocialStatus(error.message,false);
   } finally {
@@ -1793,20 +1882,14 @@ async function initialize() {
 
 setAuthMode("login");
 initialize();
-// Frequent lightweight position refresh for near-real-time movement on the map.
-setInterval(() => {
-  if (!token) return;
-  refreshMapPlayers();
-}, 1500);
-
-// Chat/friends refresh stays slower to avoid excessive database traffic.
+// WebSocket pushes movement, presence, and chat; only refresh friend directory occasionally.
 setInterval(() => {
   if (!token || socialPollBusy) return;
   const socialPanel = $("socialTab");
   if (socialPanel && socialPanel.classList.contains("active")) {
-    refreshSocial().catch(error => setSocialStatus(error.message, false));
+    api("/api/social/friends").then(data => renderFriends(data.friends || [])).catch(() => {});
   }
-}, 4000);
+}, 30000);
 </script>
 </body>
 </html>
