@@ -28,9 +28,4 @@
       "database_id": "435ffe9f-7592-45ae-a7d8-d1fbccca5275"
     }
   ],
-
-  // Periksa pekerjaan dan biaya hidup setiap 5 menit
-  "triggers": {
-    "crons": ["*/5 * * * *"]
-  }
 }
