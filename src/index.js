@@ -417,6 +417,15 @@ async function handleApi(request, env) {
     return json({ jobs: result.results || [] });
   }
 
+  // Career records for all jobs the character has worked.
+  if (path === "/api/career" && method === "GET") {
+    const session = await getSession(request, db);
+    if (!session) return json({ error: "Silakan login kembali." }, 401);
+    await db.prepare("CREATE TABLE IF NOT EXISTS career_progress(character_id TEXT NOT NULL,job_id TEXT NOT NULL,experience INTEGER NOT NULL DEFAULT 0,rank INTEGER NOT NULL DEFAULT 1,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(character_id,job_id),FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE)").run();
+    const result = await db.prepare("SELECT cp.job_id,j.name AS job_name,cp.experience,cp.rank,cp.updated_at FROM career_progress cp JOIN jobs j ON j.id=cp.job_id WHERE cp.character_id=? ORDER BY cp.rank DESC,cp.experience DESC").bind(session.character_id).all();
+    return json({success:true,careers:result.results||[]});
+  }
+
   // Player-owned businesses: create, upgrade, and collect revenue.
   if (path === "/api/business" && (method === "GET" || method === "POST")) {
     const session = await getSession(request, db);
