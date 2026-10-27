@@ -524,6 +524,40 @@ footer {
 .chat-line strong{color:#bde5f6}.chat-line .chat-time{color:#7f9aa6;font-size:10px;margin-left:6px}
 .chat-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:9px}.chat-form input{min-width:0}
 @media(max-width:600px){.player-row,.friend-row{align-items:flex-start;flex-wrap:wrap}.player-actions{width:100%;padding-left:48px}.chat-messages{height:280px}}
+
+/* Aurelith Cozy Pixel RPG redesign */
+:root{--bg:#101629;--panel:#202a43;--panel2:#2d3b58;--border:#4b5d7b;--text:#fff4dc;--muted:#c0c9db;--accent:#f2b879;--green:#a9df9c;--red:#ff9eaa}
+body{background:radial-gradient(ellipse at top,#253553 0%,#101629 65%);color:var(--text);font-family:"Courier New",ui-monospace,monospace;image-rendering:pixelated}
+header{background:#17223a;border-bottom:3px solid #526584;box-shadow:0 4px 0 #0b1020}
+.logo{font-family:"Courier New",monospace;font-weight:900;letter-spacing:1px;text-shadow:2px 2px #7d5b8c}
+.logo span{color:#a9df9c}
+button{border-radius:5px;border:2px solid #ffe0a8;background:#f2b879;color:#39294b;box-shadow:0 4px 0 #956b56;font-family:inherit}
+button:active{transform:translateY(2px);box-shadow:0 2px 0 #956b56}
+button.secondary{background:#354765;color:#fff4dc;border-color:#7186a5;box-shadow:0 4px 0 #1a263c}
+.panel,.stat,.auth-card{background:linear-gradient(180deg,#25334e,#1b263e);border:2px solid #526584;border-radius:8px;box-shadow:0 5px 0 #0b1020}
+input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:4px;color:#fff4dc}
+.tabs{gap:10px}
+.tabs button{border-radius:5px}
+.tabs button.active{background:#f2b879;color:#39294b;border-color:#ffe0a8}
+.dashboard-ribbon{border:2px solid #526584;background:#25334e;border-radius:8px}
+.city-map{border:3px solid #8ca68b;border-radius:5px;background-color:#6d9b76;background-image:linear-gradient(28deg,transparent 46%,#d7c28b 47%,#d7c28b 52%,transparent 53%),linear-gradient(152deg,transparent 46%,#d7c28b 47%,#d7c28b 52%,transparent 53%),linear-gradient(90deg,#487b69,#78a879 50%,#4b806b);image-rendering:pixelated}
+.district{border-radius:3px;border:3px solid #f7dfaa;box-shadow:0 4px 0 #3d4b47;font-family:inherit}
+.job{border-radius:5px;background:#19243b}
+.universe-wrap{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(240px,.8fr);gap:16px;align-items:start}
+.universe-stage{overflow:hidden;border:3px solid #6c8e86;border-radius:7px;background:#8ec5cf;box-shadow:0 5px 0 #0b1020}
+#universeCanvas{display:block;width:100%;height:auto;image-rendering:pixelated;cursor:crosshair;touch-action:manipulation}
+.universe-hud{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:12px}
+.pixel-tag{display:inline-flex;align-items:center;gap:6px;background:#344661;border:2px solid #657d9e;padding:7px 9px;border-radius:4px;font-size:12px}
+.universe-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}
+.universe-actions button{min-height:45px}
+.universe-side-card{background:#202d47;border:2px solid #526584;border-radius:7px;padding:14px;margin-bottom:12px}
+.pet-face{font-size:42px;text-align:center;padding:12px;background:#354765;border:2px solid #7186a5;border-radius:5px;margin-bottom:10px}
+.pet-meter{height:12px;background:#10192c;border:2px solid #526584;margin:6px 0 12px;overflow:hidden}
+.pet-meter span{display:block;height:100%;background:#a9df9c;transition:width .2s}
+.universe-note{font-size:12px;line-height:1.6;color:#d0d9e8}
+.pixel-badge{display:inline-block;background:#a9df9c;color:#203344;padding:4px 7px;border:2px solid #d7f6bd;font-size:11px;font-weight:bold}
+@media(max-width:760px){.universe-wrap{grid-template-columns:1fr}.universe-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.universe-side-card{margin-bottom:0}.universe-side-card:first-child{grid-column:1/-1}.universe-actions{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding:16px 12px 32px}.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{font-size:12px;padding:10px 6px}}
+
 </style>
 </head>
 <body>
@@ -540,7 +574,7 @@ footer {
     <div class="auth-card">
       <div class="logo">✦ AURELITH<span> CITY</span></div>
       <h1 id="authTitle" style="margin-top:24px">Masuk ke kota</h1>
-      <p class="muted">Bangun kehidupanmu sendiri di dunia virtual Aurelith.</p>
+      <p class="muted">Masuki dunia pixel-art, rawat teman mungilmu, dan bangun pulau yang mencerminkan dirimu.</p>
       <div class="auth-tabs">
         <button id="loginTab" onclick="setAuthMode('login')">Masuk</button>
         <button id="registerTab" class="secondary" onclick="setAuthMode('register')">Daftar warga</button>
@@ -580,7 +614,8 @@ footer {
     </div>
 
     <div class="tabs">
-      <button class="active" data-tab="cityTab" onclick="showTab('cityTab',this)">🗺️ Kota</button>
+      <button class="active" data-tab="universeTab" onclick="showTab('universeTab',this)">🌱 Duniaku</button>
+      <button data-tab="cityTab" onclick="showTab('cityTab',this)">🗺️ Kota</button>
       <button data-tab="jobsTab" onclick="showTab('jobsTab',this)">💼 Pekerjaan</button>
       <button data-tab="walletTab" onclick="showTab('walletTab',this)">💰 Dompet</button>
       <button data-tab="gameTab" onclick="showTab('gameTab',this)">🎮 Aktivitas & kriminalitas</button>
@@ -589,7 +624,50 @@ footer {
       <button data-tab="settingsTab" onclick="showTab('settingsTab',this)">👤 Karakter</button>
     </div>
 
-    <section id="cityTab" class="tab-panel active">
+
+    <section id="universeTab" class="tab-panel active">
+      <div class="welcome">
+        <h1>Selamat datang di duniamu ✦</h1>
+        <p class="muted">Bangun pulau kecilmu, rawat teman mungilmu, lalu bagikan dunia buatanmu kepada teman-teman.</p>
+      </div>
+      <div class="universe-hud">
+        <span class="pixel-tag">🌙 AURELITH ISLAND</span>
+        <span class="pixel-tag">🪙 <strong id="universeCoins">0</strong> koin</span>
+        <span class="pixel-tag">⭐ <strong id="universeLevel">Level 1</strong></span>
+      </div>
+      <div class="universe-wrap">
+        <div>
+          <div class="universe-stage"><canvas id="universeCanvas" width="960" height="540" aria-label="Pulau pixel art milikmu. Ketuk pulau untuk menaruh dekorasi saat mode dekorasi aktif."></canvas></div>
+          <div class="universe-actions">
+            <button onclick="universeFeedPet()">🍓 Beri makan</button>
+            <button onclick="universePlayPet()">🧶 Main dengan pet</button>
+            <button class="secondary" id="universeDecorButton" onclick="toggleUniverseDecor()">🌼 Mode dekorasi: mati</button>
+            <button class="secondary" onclick="shareUniverse()">📸 Bagikan duniaku</button>
+          </div>
+          <p class="universe-note" id="universeMessage" role="status">Duniamu menunggu sentuhan pertama. Aktifkan mode dekorasi, lalu ketuk pulau untuk menaruh bunga.</p>
+        </div>
+        <div class="universe-side">
+          <div class="universe-side-card">
+            <div class="pixel-badge">TEMAN MUNGILMU</div>
+            <div class="pet-face" id="universePetFace">🐣</div>
+            <h2 style="text-align:center;margin-bottom:4px" id="universePetName">Pip</h2>
+            <p class="muted" style="text-align:center;margin-top:0">Pet Pulau · <span id="universePetMood">Senang</span></p>
+            <label>Rasa kenyang</label><div class="pet-meter"><span id="universeHungerBar" style="width:75%"></span></div>
+            <label>Kebahagiaan</label><div class="pet-meter"><span id="universeHappyBar" style="width:85%"></span></div>
+            <p class="universe-note">Rawat Pip setiap kali berkunjung. Semakin sering kalian bermain, semakin banyak pengalaman yang didapat.</p>
+          </div>
+          <div class="universe-side-card">
+            <h2>🎒 Buku Petualangan</h2>
+            <p class="universe-note">🌱 <strong id="universeDecorCount">0</strong> dekorasi ditaruh</p>
+            <p class="universe-note">💚 <strong id="universeCareCount">0</strong> kali merawat pet</p>
+            <p class="universe-note">✨ Kunjungi dunia teman dan bagikan pulau untuk mengundang pemain baru.</p>
+            <button class="secondary full" onclick="showTab('socialTab')">👋 Temui pemain</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="cityTab" class="tab-panel">
       <div class="layout">
         <div class="stack">
           <div class="panel">
@@ -1007,6 +1085,7 @@ async function enterCity() {
     currentUser = me.user;
     character = me.character;
     await refreshAll();
+    loadUniverseData();
     connectRealtime();
     addEvent("Kamu masuk ke Aurelith City.");
   } catch (error) {
@@ -1557,6 +1636,7 @@ function showTab(tabId, button) {
     button.classList.add("active");
   }
 
+  if (tabId === "universeTab") { loadUniverseData(); }
   if (tabId === "walletTab") loadWallet().catch(e => addEvent(e.message));
   if (tabId === "jobsTab" && !jobs.length) loadJobs().catch(e => addEvent(e.message));
   if (tabId === "settingsTab") loadSettings().catch(e => addEvent(e.message));
@@ -1990,6 +2070,100 @@ $("chatForm").addEventListener("submit", async event => {
     $("chatSend").disabled = false;
   }
 });
+
+
+/* My Little Universe-inspired island layer. Personal decorations/pet progress are browser-local in this first visual phase. */
+let universeDecorMode = false;
+let universeData = { decorations: [], hunger: 75, happiness: 85, care: 0, play: 0, xp: 0 };
+function universeStorageKey() {
+  return "aurelith_universe_" + ((currentUser && currentUser.id) || "guest");
+}
+function loadUniverseData() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(universeStorageKey()) || "null");
+    if (saved && typeof saved === "object") universeData = Object.assign(universeData, saved);
+  } catch {}
+  renderUniverse();
+}
+function saveUniverseData() {
+  try { localStorage.setItem(universeStorageKey(), JSON.stringify(universeData)); } catch {}
+}
+function pixelRect(ctx,x,y,w,h,color) { ctx.fillStyle=color; ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h)); }
+function drawUniverse() {
+  const canvas = $("universeCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  const w = canvas.width, h = canvas.height;
+  pixelRect(ctx,0,0,w,h,"#91cbd2");
+  // pastel sunset and tiny stars
+  pixelRect(ctx,80,65,38,6,"#d5f0e5"); pixelRect(ctx,115,65,22,6,"#d5f0e5");
+  pixelRect(ctx,730,65,28,5,"#d5f0e5"); pixelRect(ctx,758,65,18,5,"#d5f0e5");
+  [[130,110],[800,125],[680,75],[250,180],[870,210],[90,240]].forEach(p=>{pixelRect(ctx,p[0],p[1],5,5,"#fff4c4");pixelRect(ctx,p[0]+7,p[1]+4,3,3,"#fff4c4")});
+  // water ripples
+  for(let i=0;i<12;i++){pixelRect(ctx,35+i*78,360+(i%3)*34,34,5,"#75b5c6");pixelRect(ctx,55+i*71,425+(i%2)*22,22,4,"#b5e0d8")}
+  // island shadow and grass layers
+  pixelRect(ctx,105,292,750,155,"#5c8a79"); pixelRect(ctx,130,260,700,175,"#3e6e62");
+  pixelRect(ctx,150,245,660,170,"#7eb77d"); pixelRect(ctx,185,220,590,180,"#93c982");
+  pixelRect(ctx,225,210,510,165,"#acd58a"); pixelRect(ctx,255,195,445,155,"#acd58a");
+  // sandy edge
+  pixelRect(ctx,150,330,660,38,"#d9c18a"); pixelRect(ctx,180,355,600,25,"#d9c18a");
+  pixelRect(ctx,180,315,600,45,"#8ec47e"); pixelRect(ctx,215,285,530,60,"#a9d58a");
+  // winding stone path
+  pixelRect(ctx,440,315,75,18,"#d7cda6"); pixelRect(ctx,485,330,25,35,"#d7cda6"); pixelRect(ctx,500,355,105,16,"#d7cda6");
+  pixelRect(ctx,453,319,17,6,"#f2e8c3");pixelRect(ctx,510,359,24,5,"#f2e8c3");
+  // cottage
+  pixelRect(ctx,350,220,145,85,"#f2d7a4"); pixelRect(ctx,337,209,170,20,"#bd766d");
+  pixelRect(ctx,352,185,140,25,"#d88b7c");pixelRect(ctx,374,169,95,18,"#d88b7c");
+  pixelRect(ctx,370,236,28,28,"#7bb6c3");pixelRect(ctx,430,236,28,28,"#7bb6c3");
+  pixelRect(ctx,405,264,32,41,"#93654f");pixelRect(ctx,416,281,5,5,"#f6d9a3");
+  pixelRect(ctx,340,300,165,8,"#6b8f60");
+  // window highlights
+  pixelRect(ctx,375,239,18,4,"#d4f1e6");pixelRect(ctx,435,239,18,4,"#d4f1e6");
+  // trees
+  function tree(x,y){pixelRect(ctx,x+9,y+24,10,22,"#95674d");pixelRect(ctx,x,y+8,28,22,"#47865a");pixelRect(ctx,x+4,y,22,20,"#5c9d62");pixelRect(ctx,x+7,y+5,6,5,"#a9d58a");}
+  tree(235,235);tree(630,220);tree(690,290);tree(270,310);tree(560,205);
+  // flowers and pond
+  pixelRect(ctx,555,290,70,32,"#6fb6c5");pixelRect(ctx,565,296,42,5,"#b6e5df");pixelRect(ctx,590,310,24,5,"#4b9aaa");
+  [[300,280],[320,300],[535,340],[650,325],[290,350],[605,245],[520,220]].forEach((p,i)=>{pixelRect(ctx,p[0],p[1],5,5,i%2?"#f4a7b8":"#fff0a6");pixelRect(ctx,p[0]+5,p[1]+4,4,4,"#f7fff0")});
+  // decorations placed by player
+  (universeData.decorations||[]).forEach((d,i)=>drawDecoration(ctx,d.x,d.y,d.type||"flower",i));
+  // avatar and pet
+  const ax=470, ay=310;
+  pixelRect(ctx,ax,ay+13,18,16,"#5269a5");pixelRect(ctx,ax+3,ay+2,13,13,"#f0bd8f");pixelRect(ctx,ax+2,ay,15,5,"#76517b");
+  pixelRect(ctx,ax+6,ay+7,3,3,"#27354a");pixelRect(ctx,ax+12,ay+7,3,3,"#27354a");pixelRect(ctx,ax+4,ay+27,5,7,"#604d70");pixelRect(ctx,ax+13,ay+27,5,7,"#604d70");
+  pixelRect(ctx,ax+27,ay+20,20,16,"#f1d98a");pixelRect(ctx,ax+30,ay+13,14,12,"#f1d98a");pixelRect(ctx,ax+31,ay+10,5,8,"#f1d98a");pixelRect(ctx,ax+40,ay+10,5,8,"#f1d98a");pixelRect(ctx,ax+33,ay+18,3,3,"#35445a");pixelRect(ctx,ax+40,ay+18,3,3,"#35445a");
+  // nameplate
+  pixelRect(ctx,ax-9,ay-20,76,13,"#24354b");ctx.fillStyle="#fff4dc";ctx.font="10px monospace";ctx.fillText((character&&character.displayName)||"Petualang",ax-5,ay-10);
+}
+function drawDecoration(ctx,x,y,type,i) {
+  if(type==="flower"){pixelRect(ctx,x,y,6,6,i%2?"#f5a6c2":"#fff0a6");pixelRect(ctx,x+2,y+5,3,7,"#4d9362");pixelRect(ctx,x-2,y+2,4,4,"#f7e6b7");}
+  else if(type==="lamp"){pixelRect(ctx,x+4,y,5,19,"#8e664e");pixelRect(ctx,x,y-5,13,9,"#f5d987");pixelRect(ctx,x+3,y-3,7,4,"#fff3be");}
+  else if(type==="mushroom"){pixelRect(ctx,x,y+5,12,10,"#f4d7a1");pixelRect(ctx,x-3,y,18,7,"#d77b7b");pixelRect(ctx,x+2,y+2,3,3,"#fff0c1");}
+  else {pixelRect(ctx,x,y,15,15,"#dca0bf");pixelRect(ctx,x+4,y+4,7,7,"#f7d9e8");}
+}
+function renderUniverse() {
+  drawUniverse();
+  const el=(id)=>$(id);
+  if(el("universeCoins"))el("universeCoins").textContent=String((universeData.decorations||[]).length*5);
+  if(el("universeLevel"))el("universeLevel").textContent="Level "+(1+Math.floor((universeData.xp||0)/5));
+  if(el("universeDecorCount"))el("universeDecorCount").textContent=(universeData.decorations||[]).length;
+  if(el("universeCareCount"))el("universeCareCount").textContent=universeData.care||0;
+  if(el("universeHungerBar"))el("universeHungerBar").style.width=Math.max(0,Math.min(100,universeData.hunger))+"%";
+  if(el("universeHappyBar"))el("universeHappyBar").style.width=Math.max(0,Math.min(100,universeData.happiness))+"%";
+  if(el("universePetMood"))el("universePetMood").textContent=universeData.happiness>70?"Sangat senang":universeData.happiness>35?"Senang":"Ingin bermain";
+}
+function universeMessage(text){const el=$("universeMessage");if(el)el.textContent=text;}
+function universeFeedPet(){universeData.hunger=Math.min(100,universeData.hunger+22);universeData.happiness=Math.min(100,universeData.happiness+4);universeData.care++;universeData.xp++;saveUniverseData();renderUniverse();universeMessage("Pip memakan camilan dengan lahap! Kamu mendapat pengalaman.");}
+function universePlayPet(){universeData.happiness=Math.min(100,universeData.happiness+18);universeData.hunger=Math.max(0,universeData.hunger-7);universeData.play++;universeData.xp++;saveUniverseData();renderUniverse();universeMessage("Pip bermain bersamamu. Persahabatan kalian semakin kuat!");}
+function toggleUniverseDecor(){universeDecorMode=!universeDecorMode;const b=$("universeDecorButton");if(b)b.textContent="🌼 Mode dekorasi: "+(universeDecorMode?"aktif":"mati");universeMessage(universeDecorMode?"Mode dekorasi aktif. Ketuk area rumput untuk menaruh bunga, lampu, atau jamur.":"Mode dekorasi dimatikan.");}
+(function attachUniverseCanvas(){const canvas=$("universeCanvas");if(!canvas)return;canvas.addEventListener("click",function(e){if(!universeDecorMode){universeMessage("Aktifkan mode dekorasi untuk menambahkan benda ke pulau.");return;}const r=canvas.getBoundingClientRect();const x=Math.round((e.clientX-r.left)*canvas.width/r.width);const y=Math.round((e.clientY-r.top)*canvas.height/r.height);if(x<150||x>810||y<190||y>390){universeMessage("Pilih area pulau yang berumput untuk menaruh dekorasi.");return;}const types=["flower","lamp","mushroom"];universeData.decorations=universeData.decorations||[];universeData.decorations.push({x:x,y:y,type:types[universeData.decorations.length%types.length]});universeData.xp=(universeData.xp||0)+1;saveUniverseData();renderUniverse();universeMessage("Dekorasi ditambahkan! Pulau kecilmu semakin unik.");});})();
+async function shareUniverse(){
+  const name=(character&&character.displayName)||"Petualang Aurelith";
+  const url=location.origin+location.pathname+"?world="+encodeURIComponent((currentUser&&currentUser.username)||"guest");
+  const text="Yuk kunjungi dunia pixel-art milikku di Aurelith City! 🌱✨";
+  try{if(navigator.share){await navigator.share({title:"Duniaku di Aurelith City",text:text,url:url});}else if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(text+" "+url);universeMessage("Tautan dunia disalin. Bagikan ke Instagram Story atau DM!");}else{window.prompt("Salin tautan duniamu:",url);}}catch(e){if(e&&e.name!=="AbortError")universeMessage("Bagikan tautan ini: "+url);}
+}
 
 async function initialize() {
   try {
