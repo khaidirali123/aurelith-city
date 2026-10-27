@@ -616,10 +616,17 @@ async function handleApi(request, env) {
       }, 429);
     }
 
+    await db.prepare("CREATE TABLE IF NOT EXISTS career_progress(character_id TEXT NOT NULL,job_id TEXT NOT NULL,experience INTEGER NOT NULL DEFAULT 0,rank INTEGER NOT NULL DEFAULT 1,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(character_id,job_id),FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE)").run();
+    const career = await db.prepare("SELECT experience,rank FROM career_progress WHERE character_id=? AND job_id=?").bind(session.character_id,jobId).first();
+    const oldRank = Number(career?.rank || 1);
+    const newXp = Number(career?.experience || 0) + 1;
+    const newRank = Math.min(5, 1 + Math.floor(newXp / 3));
+    const paidSalary = Number(job.salary) + (newRank - 1) * Math.floor(Number(job.salary) * 0.05);
     const transactionId = crypto.randomUUID();
     const activityId = crypto.randomUUID();
 
     await db.batch([
+      db.prepare("INSERT INTO career_progress(character_id,job_id,experience,rank) VALUES(?,?,1,1) ON CONFLICT(character_id,job_id) DO UPDATE SET experience=career_progress.experience+1,rank=?,updated_at=CURRENT_TIMESTAMP").bind(session.character_id,jobId,newRank),
       db.prepare(`
         UPDATE characters
         SET money = money + ?,
@@ -628,8 +635,8 @@ async function handleApi(request, env) {
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).bind(
-        job.salary,
-        `Bekerja: ${job.name}`,
+        paidSalary,
+        `Bekerja: ${job.name} · Pangkat ${newRank}`,
         session.character_id
       ),
 
@@ -650,8 +657,8 @@ async function handleApi(request, env) {
       `).bind(
         transactionId,
         session.character_id,
-        job.salary,
-        `Gaji: ${job.name}`
+        paidSalary,
+        `Gaji: ${job.name} (pangkat ${newRank})`
       )
     ]);
 
@@ -661,7 +668,8 @@ async function handleApi(request, env) {
 
     return json({
       success: true,
-      message: `Kamu memperoleh ${job.salary} uang virtual sebagai ${job.name}.`,
+      message: `Kamu memperoleh ${paidSalary} uang virtual sebagai ${job.name}. Pangkat karier: ${newRank}/5.`,
+      career: { experience: newXp, rank: newRank, promoted: newRank > oldRank, salaryBonus: paidSalary - Number(job.salary) },
       job: {
         id: job.id,
         name: job.name,
