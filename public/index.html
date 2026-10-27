@@ -58,9 +58,9 @@ textarea{resize:vertical;min-height:90px}
 
 
 
-.district b{font-size:23px}.district small{font-size:10px}
-.d1{top:9%;left:8%}.d2{top:13%;right:8%;background:#655d91}
-.d3{bottom:13%;left:12%;background:#9a8754}.d4{bottom:12%;right:12%;background:#487c65}
+
+
+
 
 .job-list{display:grid;gap:10px}
 .job{border:1px solid var(--border);border-radius:12px;padding:14px;background:#141b29}
@@ -87,7 +87,7 @@ footer{text-align:center;color:#78849d;font-size:12px;padding:24px}
 
 /* =========================================
    AURELITH CITY — CLASSIC MMORPG UI
-   Torn-inspired visual redesign
+   Aurelith cozy island visual design
    ========================================= */
 
 :root {
@@ -302,22 +302,13 @@ label {
 
 
 
-.district:hover {
-  transform: translateY(-3px);
-  filter: brightness(1.15);
-}
 
-.d2 {
-  background: linear-gradient(#7e76a9, #514b78);
-}
 
-.d3 {
-  background: linear-gradient(#b09b60, #76633a);
-}
 
-.d4 {
-  background: linear-gradient(#559875, #32674d);
-}
+
+
+
+
 
 
 
@@ -427,9 +418,7 @@ footer {
 
   
 
-  .district small {
-    font-size: 9px;
-  }
+  
 
   
 }
@@ -445,12 +434,12 @@ footer {
 
 
 
-.district:hover{transform:translateY(-3px);filter:brightness(1.14)}
-.d1{top:10%;left:6%}.d2{top:12%;right:6%}.d3{bottom:15%;left:7%}.d4{bottom:13%;right:7%}
-.d5{top:42%;left:38%;background:linear-gradient(#557f9a,#355c74);border-color:#b8d9eb}
-.d6{top:7%;left:42%;background:linear-gradient(#8b7756,#5c4c35);border-color:#e4d2a8}
-.d7{bottom:8%;left:42%;background:linear-gradient(#9a5e5e,#663c42);border-color:#e5b3b3}
-.d8{top:43%;right:6%;background:linear-gradient(#6e8960,#3f5e3b);border-color:#c4ddb6}
+
+
+
+
+
+
 
 .map-player{position:absolute;z-index:7;transform:translate(-50%,-50%);width:27px;height:27px;padding:0;border-radius:50%;display:grid;place-items:center;background:#f4d28b;border:2px solid #fff1bd;color:#192630;font-size:14px;box-shadow:0 2px 8px #0009;transition:left .35s,top .35s}
 .map-player:after{content:attr(data-name);position:absolute;top:25px;left:50%;transform:translateX(-50%);width:max-content;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;color:#fff;background:#111d;padding:2px 4px;border-radius:3px}
@@ -463,13 +452,13 @@ footer {
 .gameplay-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
 .gameplay-shortcuts button{min-height:54px}
 .activity-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;background:#10232c;border:1px solid #365260;color:#bde7f6;border-radius:3px;font-size:11px}
-@media(max-width:600px){.district b{font-size:19px}.district small{font-size:8px}.d5{left:37%}.d6{left:39%}.d7{left:39%}.d8{right:3%}.job-tools{grid-template-columns:1fr}.gameplay-shortcuts{grid-template-columns:1fr}.dashboard-ribbon{align-items:flex-start}}
+@media(max-width:600px){.job-tools{grid-template-columns:1fr}.gameplay-shortcuts{grid-template-columns:1fr}.dashboard-ribbon{align-items:flex-start}}
 
 
 .game-action-result{padding:12px;border:1px solid var(--border);background:#14232d;margin:8px 0;border-radius:4px}
 .game-activity-row{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px}
 .game-activity-row:last-child{border-bottom:0}
-@media(max-width:800px){#gameTab .stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:800px){}
 
 /* Multiplayer social UI */
 .social-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0}
@@ -568,7 +557,6 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
       <div class="stat"><small>Saldo karakter</small><strong id="statBalance">0</strong></div>
       <div class="stat"><small>Energi</small><strong id="statEnergy">0 / 100</strong></div>
       <div class="stat"><small>Suasana hati</small><strong id="statMood">0 / 100</strong></div>
-      <div class="stat"><small>Daftar pekerjaan</small><strong id="statJobs">0</strong></div>
     </section>
 
     <div class="dashboard-ribbon">
