@@ -13,6 +13,7 @@ const encoder = new TextEncoder();
 
 const SKIN_TONES = ["light", "medium", "dark"];
 const OUTFITS = ["casual", "formal", "worker", "sport"];
+let islandTableReady = false;
 
 function toBase64(bytes) {
   let binary = "";
@@ -241,14 +242,17 @@ async function handleApi(request, env) {
 
   // Pulau personal: data tersimpan di D1, tanpa proses latar atau polling.
   if (path.startsWith("/api/island")) {
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS player_islands (
-        character_id TEXT PRIMARY KEY,
-        island_data TEXT NOT NULL DEFAULT '{}',
-        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
-      )
-    `).run();
+    if (!islandTableReady) {
+      await db.prepare(`
+        CREATE TABLE IF NOT EXISTS player_islands (
+          character_id TEXT PRIMARY KEY,
+          island_data TEXT NOT NULL DEFAULT '{}',
+          updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
+        )
+      `).run();
+      islandTableReady = true;
+    }
 
     if (path === "/api/island/world" && method === "GET") {
       const username = String(url.searchParams.get("username") || "").trim().toLowerCase();
