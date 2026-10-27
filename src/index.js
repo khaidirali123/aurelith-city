@@ -1293,6 +1293,30 @@ export class AurelithRealtime {
     const characterId = request.headers.get("X-Aurelith-Character-Id");
     const displayName = request.headers.get("X-Aurelith-Display-Name") || "Warga";
     if (!characterId) return new Response("Unauthorized", { status: 401 });
+    // Additive, idempotent setup for the realtime tables; never drops or resets existing data.
+    await this.env.DB.batch([
+      this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS player_presence (
+        character_id TEXT PRIMARY KEY, x REAL NOT NULL DEFAULT 600, y REAL NOT NULL DEFAULT 400,
+        last_seen TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
+      )`),
+      this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS social_messages (
+        id TEXT PRIMARY KEY, sender_character_id TEXT NOT NULL, recipient_character_id TEXT,
+        channel TEXT NOT NULL CHECK(channel IN ('global','local','whisper')), message TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(sender_character_id) REFERENCES characters(id) ON DELETE CASCADE,
+        FOREIGN KEY(recipient_character_id) REFERENCES characters(id) ON DELETE CASCADE
+      )`),
+      this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS player_friendships (
+        id TEXT PRIMARY KEY, requester_character_id TEXT NOT NULL, addressee_character_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','declined')),
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(requester_character_id, addressee_character_id),
+        CHECK(requester_character_id <> addressee_character_id),
+        FOREIGN KEY(requester_character_id) REFERENCES characters(id) ON DELETE CASCADE,
+        FOREIGN KEY(addressee_character_id) REFERENCES characters(id) ON DELETE CASCADE
+      )`)
+    ]);
     const pair = new WebSocketPair();
     const client = pair[0];
     const server = pair[1];
