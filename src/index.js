@@ -14,6 +14,7 @@ const encoder = new TextEncoder();
 const SKIN_TONES = ["light", "medium", "dark"];
 const OUTFITS = ["casual", "formal", "worker", "sport"];
 let islandTableReady = false;
+let journalTableReady = false;
 
 function toBase64(bytes) {
   let binary = "";
@@ -615,15 +616,18 @@ async function handleApi(request, env) {
     const session = await getSession(request, db);
     if (!session) return json({ error: "Silakan login kembali." }, 401);
 
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS player_journal (
-        id TEXT PRIMARY KEY,
-        character_id TEXT NOT NULL,
-        entry_type TEXT NOT NULL DEFAULT 'activity',
-        message TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )
-    `).run();
+    if (!journalTableReady) {
+      await db.prepare(`
+        CREATE TABLE IF NOT EXISTS player_journal (
+          id TEXT PRIMARY KEY,
+          character_id TEXT NOT NULL,
+          entry_type TEXT NOT NULL DEFAULT 'activity',
+          message TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `).run();
+      journalTableReady = true;
+    }
 
     if (method === "GET") {
       const result = await db.prepare(
