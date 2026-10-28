@@ -590,6 +590,7 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
             <button onclick="universeFeedPet()">🍓 Beri makan</button>
             <button onclick="universePlayPet()">🧶 Main dengan pet</button>
             <button class="secondary" id="universeDecorButton" onclick="toggleUniverseDecor()">🌼 Mode dekorasi: mati</button>
+            <button class="secondary" id="universeStoreDecorationButton" onclick="storeSelectedDecoration()" disabled>🎒 Ambil dekorasi</button>
             <button class="secondary" onclick="shareUniverse()">📸 Bagikan duniaku</button>
           </div>
           <p class="universe-note" id="universeMessage" role="status">Duniamu menunggu sentuhan pertama. Aktifkan mode dekorasi, lalu ketuk pulau untuk menaruh bunga.</p>
@@ -1666,6 +1667,7 @@ $("chatForm").addEventListener("submit", async event => {
 
 /* My Little Universe-inspired island layer. Personal decorations/pet progress are browser-local in this first visual phase. */
 let universeDecorMode = false;
+let selectedDecorationIndex = null;
 let viewingSharedWorld = false;
 const ISLAND_DEFAULTS = { decorations: [], hunger: 75, happiness: 85, care: 0, play: 0, xp: 0, coins: 20, seeds: 3, garden: [null,null,null], inventory: {flower:2,lamp:0,mushroom:0,crystal:0,tree:0,bench:0,pond:0} };
 let universeData = structuredClone(ISLAND_DEFAULTS);
@@ -1912,8 +1914,59 @@ function buyIslandItem(type){
 }
 function universeFeedPet(){if(viewingSharedWorld)return;if(Number(universeData.coins||0)<2){universeMessage("Camilan Pip membutuhkan 2 koin. Panen kebun dulu.");return;}universeData.coins-=2;universeData.hunger=Math.min(100,universeData.hunger+22);universeData.happiness=Math.min(100,universeData.happiness+4);universeData.care++;universeData.xp++;saveUniverseData();renderUniverse();universeMessage("Pip memakan camilan dengan lahap! Kamu mendapat pengalaman.");}
 function universePlayPet(){if(viewingSharedWorld)return;universeData.happiness=Math.min(100,universeData.happiness+18);universeData.hunger=Math.max(0,universeData.hunger-7);universeData.play++;universeData.xp++;saveUniverseData();renderUniverse();universeMessage("Pip bermain bersamamu. Persahabatan kalian semakin kuat!");}
-function toggleUniverseDecor(){if(viewingSharedWorld)return;universeDecorMode=!universeDecorMode;const b=$("universeDecorButton");if(b)b.textContent="🌼 Mode dekorasi: "+(universeDecorMode?"aktif":"mati");universeMessage(universeDecorMode?"Mode dekorasi aktif. Ketuk area pulau untuk menaruh benda dari tas dekorasimu.":"Mode dekorasi dimatikan.");}
-(function attachUniverseCanvas(){const canvas=$("universeCanvas");if(!canvas)return;canvas.addEventListener("click",function(e){if(!universeDecorMode){universeMessage("Aktifkan mode dekorasi untuk menambahkan benda ke pulau.");return;}const r=canvas.getBoundingClientRect();const x=Math.round((e.clientX-r.left)*canvas.width/r.width);const y=Math.round((e.clientY-r.top)*canvas.height/r.height);if(x<150||x>810||y<190||y>390){universeMessage("Pilih area pulau yang berumput untuk menaruh dekorasi.");return;}const available=Object.entries(universeData.inventory||{}).filter(([type,count])=>Number(count)>0&&["flower","lamp","mushroom","crystal","tree","bench","pond"].includes(type));if(!available.length){universeMessage("Tas dekorasimu kosong. Beli dekorasi di toko pulau dahulu.");return;}const [type,count]=available[0];universeData.decorations=universeData.decorations||[];universeData.decorations.push({x:x,y:y,type:type});universeData.inventory[type]=Number(count)-1;universeData.xp=(universeData.xp||0)+1;saveUniverseData();renderUniverse();universeMessage("Dekorasi ditambahkan! Pulau kecilmu semakin unik.");});})();
+function toggleUniverseDecor(){
+  if(viewingSharedWorld)return;
+  universeDecorMode=!universeDecorMode;
+  const button=$("universeDecorButton");
+  if(button)button.textContent="🌼 Mode dekorasi: "+(universeDecorMode?"aktif":"mati");
+  if(!universeDecorMode){selectedDecorationIndex=null;updateSelectedDecorationUI();}
+  universeMessage(universeDecorMode?"Ketuk dekorasi untuk memilih dan memindahkannya. Ketuk area kosong untuk menaruh benda dari tas.":"Mode dekorasi dimatikan.");
+}
+function updateSelectedDecorationUI(){
+  const button=$("universeStoreDecorationButton");
+  if(button)button.disabled=viewingSharedWorld||selectedDecorationIndex===null||!universeData.decorations?.[selectedDecorationIndex];
+}
+function storeSelectedDecoration(){
+  if(viewingSharedWorld||selectedDecorationIndex===null)return;
+  const decorations=universeData.decorations||[];
+  const item=decorations[selectedDecorationIndex];
+  if(!item){selectedDecorationIndex=null;updateSelectedDecorationUI();return;}
+  universeData.inventory=universeData.inventory||{};
+  universeData.inventory[item.type]=Math.min(999,Number(universeData.inventory[item.type]||0)+1);
+  decorations.splice(selectedDecorationIndex,1);
+  selectedDecorationIndex=null;
+  saveUniverseData();renderUniverse();updateSelectedDecorationUI();
+  universeMessage("Dekorasi disimpan kembali ke tas. Kamu bisa menaruhnya lagi kapan saja.");
+}
+(function attachUniverseCanvas(){
+  const canvas=$("universeCanvas");if(!canvas)return;
+  canvas.addEventListener("click",function(e){
+    if(!universeDecorMode){universeMessage("Aktifkan mode dekorasi untuk memindahkan atau menaruh benda.");return;}
+    const rect=canvas.getBoundingClientRect();
+    const x=Math.round((e.clientX-rect.left)*canvas.width/rect.width);
+    const y=Math.round((e.clientY-rect.top)*canvas.height/rect.height);
+    if(x<150||x>810||y<190||y>390){universeMessage("Pilih area pulau yang berumput.");return;}
+    const decorations=universeData.decorations||(universeData.decorations=[]);
+    if(selectedDecorationIndex!==null&&decorations[selectedDecorationIndex]){
+      decorations[selectedDecorationIndex]={...decorations[selectedDecorationIndex],x,y};
+      selectedDecorationIndex=null;
+      saveUniverseData();renderUniverse();updateSelectedDecorationUI();
+      universeMessage("Dekorasi dipindahkan ke tempat baru. ✨");return;
+    }
+    let nearest=-1,best=34;
+    decorations.forEach((item,index)=>{const distance=Math.hypot(Number(item.x)-x,Number(item.y)-y);if(distance<best){best=distance;nearest=index;}});
+    if(nearest>=0){
+      selectedDecorationIndex=nearest;updateSelectedDecorationUI();
+      universeMessage("Dekorasi dipilih. Ketuk tempat baru untuk memindahkannya, atau tekan Ambil dekorasi untuk menyimpan ke tas.");return;
+    }
+    const available=Object.entries(universeData.inventory||{}).filter(([type,count])=>Number(count)>0&&["flower","lamp","mushroom","crystal","tree","bench","pond"].includes(type));
+    if(!available.length){universeMessage("Tas dekorasimu kosong. Beli dekorasi di toko pulau dahulu.");return;}
+    const [type,count]=available[0];decorations.push({x,y,type});universeData.inventory[type]=Number(count)-1;
+    universeData.xp=Math.min(1000000,(universeData.xp||0)+1);
+    saveUniverseData();renderUniverse();updateSelectedDecorationUI();
+    universeMessage("Dekorasi ditambahkan! Pulau kecilmu semakin unik.");
+  });
+})();
 async function shareUniverse(){
   const name=(character&&character.displayName)||"Petualang Aurelith";
   const url=location.origin+location.pathname+"?world="+encodeURIComponent((currentUser&&currentUser.username)||"guest");
