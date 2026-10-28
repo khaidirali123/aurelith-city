@@ -802,7 +802,10 @@ function showTab(tabId, button = null) {
       addEvent("Gagal memuat halaman teman: " + error.message);
     });
   }
-  if (tabId === "cityTab" && character) updateCharacterUI();
+  if (tabId === "cityTab" && character) {
+    updateCharacterUI();
+    loadJournal().catch(() => {});
+  }
   if (tabId === "settingsTab" && character) {
     if ($("bioInput")) $("bioInput").value = settings.bio || "";
     if ($("skinInput")) $("skinInput").value = settings.skinTone || "medium";
@@ -887,11 +890,32 @@ async function loadJournal() {
 
 async function saveJournalEntry(message, type = "note") {
   if (!token || !String(message).trim()) return;
+  const cleanMessage = String(message).trim().slice(0,180);
   await api("/api/journal", {
     method:"POST",
-    body:JSON.stringify({ message:String(message).trim().slice(0,180), type })
+    body:JSON.stringify({ message:cleanMessage, type })
   });
-  await loadJournal();
+  if (type === "note") {
+    await loadJournal();
+    return;
+  }
+  // Activity events are appended locally; fetch the full history only when
+  // opening the journal, keeping API traffic low during ordinary gameplay.
+  const list = $("journalEntries");
+  if (list) {
+    const empty = list.querySelector(".event");
+    if (empty && /masih kosong|memuat jurnal/i.test(empty.textContent || "")) list.replaceChildren();
+    const card = document.createElement("div");
+    card.className = "event";
+    const body = document.createElement("div");
+    body.textContent = cleanMessage;
+    const meta = document.createElement("small");
+    meta.className = "muted";
+    meta.textContent = "Baru saja · tersimpan";
+    card.append(body, meta);
+    list.prepend(card);
+    while (list.children.length > 100) list.lastElementChild.remove();
+  }
 }
 
 async function api(path, options = {}) {
