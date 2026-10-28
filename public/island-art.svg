@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" shape-rendering="crispEdges">
+<defs>
+ <pattern id="sea" width="96" height="72" patternUnits="userSpaceOnUse"><rect width="96" height="72" fill="#8fc0e1"/><path d="M12 18h20v3H12zM60 48h16v3H60zM34 61h9v2h-9z" fill="#b9d9e9"/><path d="M18 22h9v2h-9zM64 52h8v2h-8z" fill="#6da9d0"/></pattern>
+ <pattern id="grass" width="54" height="44" patternUnits="userSpaceOnUse"><rect width="54" height="44" fill="#a9d58f"/><path d="M7 8h4v3H7zM34 28h5v3h-5zM18 36h3v3h-3z" fill="#d3e7a5"/><path d="M10 11h3v4h-3zM39 31h3v4h-3z" fill="#77b877"/><path d="M45 7h3v2h-3zM25 18h4v2h-4z" fill="#91c983"/></pattern>
+ <g id="tree">
+  <ellipse cx="0" cy="34" rx="25" ry="8" fill="#557b60" opacity=".55"/>
+  <path d="M-6 31h12v-37H-6z" fill="#79503a"/><path d="M-3 27h5v-28h-5z" fill="#a16a47"/>
+  <path d="M-31 2l-2-12 8-12 8-3 2-12 16-7 13 4 7 10 11 3 8 12-4 12-10 9-21 5-23-2z" fill="#3f704c" stroke="#345f45" stroke-width="3"/>
+  <path d="M-27-12l3-11 11-6 8-8 13 3 8 8 10 2 7 9-4 10-15 5-13-4-12 4-14-3z" fill="#588f58"/>
+  <path d="M-18-22l5-8 9-3 5 5-4 5-10 3zM3-28l7 2 7 7-6 4-9-5zM-23-8l10-6 10 3-3 7-11 2z" fill="#80b46a"/>
+  <path d="M11-9l8-2 5 6-8 6-10-3zM-4 0l7-4 7 5-5 4z" fill="#477e50"/>
+ </g>
+ <g id="flower">
+  <path d="M0 5v12" stroke="#43864e" stroke-width="3"/><path d="M0 12l-5-3M1 14l5-4" stroke="#43864e" stroke-width="2"/>
+  <rect x="-7" y="-3" width="5" height="5" fill="#f06c83"/><rect x="2" y="-5" width="5" height="5" fill="#f8a7b8"/><rect x="-1" y="-8" width="5" height="5" fill="#f4d76c"/><rect x="-3" y="-2" width="5" height="5" fill="#e65a75"/><rect x="4" y="0" width="4" height="4" fill="#fff0d1"/>
+ </g>
+ <g id="bed">
+  <rect x="0" y="0" width="112" height="54" fill="#9d7654"/><rect x="5" y="5" width="102" height="44" fill="#715c43"/>
+  <path d="M-4 -4h120v8H-4zM-4 50h120v8H-4z" fill="#e8d2a8" stroke="#b4936d" stroke-width="2"/>
+  <path d="M4 -8h8v17H4zM24 -8h8v17h-8zM44 -8h8v17h-8zM64 -8h8v17h-8zM84 -8h8v17h-8zM104 -8h8v17h-8zM4 45h8v17H4zM24 45h8v17h-8zM44 45h8v17h-8zM64 45h8v17h-8zM84 45h8v17h-8zM104 45h8v17h-8z" fill="#f4dfb9" stroke="#b4936d" stroke-width="2"/>
+  <use href="#flower" x="18" y="19"/><use href="#flower" x="43" y="16"/><use href="#flower" x="68" y="20"/><use href="#flower" x="92" y="16"/><use href="#flower" x="30" y="35"/><use href="#flower" x="79" y="37"/>
+ </g>
+</defs>
+<rect width="960" height="540" fill="url(#sea)"/>
+<!-- island shadow, layered cliff and sandy beach -->
+<path d="M78 236L103 169 151 129 208 110 263 86 347 77 411 49 512 47 592 63 660 88 724 126 796 157 841 207 865 271 852 331 815 380 774 416 708 445 622 466 535 477 435 468 346 453 263 430 191 408 125 374 88 329 62 286z" fill="#5c8291"/>
+<path d="M69 224L95 166 145 123 205 101 265 80 347 69 416 40 514 39 598 54 665 80 732 117 803 149 849 204 873 269 858 334 823 384 778 423 711 451 625 474 532 486 432 478 343 463 258 440 184 418 116 384 79 337 53 289z" fill="#c2a47d"/>
+<path d="M76 222L102 169 151 132 210 111 269 91 350 82 420 53 513 51 594 65 659 91 722 128 790 159 836 210 859 270 846 329 810 376 768 414 704 440 620 460 533 471 437 463 348 449 264 426 194 404 127 371 90 328 65 286z" fill="#f0d59b"/>
+<path d="M95 222L120 174 164 142 218 123 276 105 352 98 424 72 512 70 589 82 649 106 709 140 774 169 817 215 838 270 826 323 794 367 755 401 695 426 614 445 531 455 440 448 354 434 274 413 205 391 143 360 108 322 81 283z" fill="url(#grass)"/>
+<!-- beach scallops -->
+<g fill="#f9e6b7"><rect x="100" y="199" width="16" height="6"/><rect x="133" y="150" width="12" height="6"/><rect x="184" y="122" width="14" height="6"/><rect x="263" y="100" width="16" height="5"/><rect x="761" y="164" width="14" height="6"/><rect x="824" y="245" width="12" height="8"/><rect x="801" y="353" width="14" height="6"/><rect x="740" y="406" width="14" height="6"/><rect x="641" y="447" width="15" height="5"/><rect x="285" y="415" width="16" height="5"/><rect x="125" y="354" width="12" height="6"/></g>
+<!-- stone retaining wall at southern garden edge -->
+<g stroke="#9b795f" stroke-width="2"><path d="M219 426h505v25H219z" fill="#c5a17b"/><path d="M219 435h505M219 444h505" fill="none"/><path d="M243 426v9m29-9v9m29-9v9m29-9v9m29-9v9m29-9v9m29-9v9m29-9v9m29-9v9m29-9v9m29-9v9m29-9v9m29-9v9m29-9v9m29-9v9m29-9v9m29-9v9" fill="none"/></g>
+<!-- paths and wooden patio -->
+<path d="M405 314l40 0 0 36 88 0 0 18-112 0-16-23z" fill="#c9b89b"/><path d="M415 320h25v24h76v9h-91z" fill="#e6d8ba"/>
+<rect x="204" y="322" width="315" height="37" fill="#9b6646"/><rect x="216" y="316" width="291" height="9" fill="#d69a62"/>
+<g fill="#bd8153"><rect x="221" y="329" width="283" height="4"/><rect x="221" y="340" width="283" height="4"/><rect x="221" y="351" width="283" height="4"/></g>
+<!-- cottage -->
+<rect x="278" y="259" width="139" height="68" fill="#e6c58f" stroke="#a87856" stroke-width="3"/>
+<path d="M260 263l18-26h140l19 26z" fill="#8e5655" stroke="#68434b" stroke-width="4"/><path d="M279 237l17-22h106l16 22z" fill="#bd7770"/><path d="M298 215l15-17h72l15 17z" fill="#d58a7a"/>
+<rect x="292" y="272" width="28" height="25" fill="#86c2ce" stroke="#fff0c8" stroke-width="4"/><path d="M306 272v25m-14-13h28" stroke="#d8e7d8" stroke-width="3"/>
+<rect x="374" y="272" width="28" height="25" fill="#86c2ce" stroke="#fff0c8" stroke-width="4"/><path d="M388 272v25m-14-13h28" stroke="#d8e7d8" stroke-width="3"/>
+<rect x="332" y="291" width="30" height="36" fill="#80563e"/><rect x="354" y="307" width="4" height="4" fill="#f7d988"/>
+<!-- giant hollow tree grove left side -->
+<g><path d="M177 329l8-84 16-36 18 5 5 61 20 47z" fill="#704733" stroke="#593a30" stroke-width="4"/><path d="M219 325l7-99 18-31 17 9-4 65 20 56z" fill="#8b593d"/><path d="M263 324l6-81 22-41 19 6-5 66 17 49z" fill="#704733"/><path d="M197 267l-22-43-18-8 6-11 27 12 17 35zM243 253l26-39 21-6 3 12-20 9-17 43z" fill="#87563a"/></g>
+<g stroke="#3b6848" stroke-width="5">
+ <path d="M125 250l-3-43 22-25 18-25 33-12 34 5 26 19 12 27-10 32-25 24-40 12-39-5z" fill="#477c50"/>
+ <path d="M161 206l-5-31 18-25 25-14 31 9 22 20 5 24-13 24-28 13-33-2z" fill="#669858"/>
+ <path d="M195 179l9-21 21-5 13 11-5 13-21 7zM150 207l9-16 17-2 8 9-8 12-17 3zM223 217l10-11 13 4 1 12-12 7z" fill="#89b66c" stroke="none"/>
+</g>
+<!-- tree trunks and large layered crowns -->
+<use href="#tree" transform="translate(473 169) scale(1.35)"/>
+<use href="#tree" transform="translate(649 201) scale(2.1)"/>
+<use href="#tree" transform="translate(786 285) scale(1.3)"/>
+<use href="#tree" transform="translate(140 191) scale(.78)"/>
+<!-- flower beds -->
+<use href="#bed" transform="translate(525 302) scale(.8)"/>
+<use href="#bed" transform="translate(606 284) scale(.95)"/>
+<use href="#bed" transform="translate(648 163) scale(.7)"/>
+<!-- rose bushes along upper right and shore -->
+<g><path d="M552 206v-26m15 28v-32m16 33v-23m18 21v-28" stroke="#43844e" stroke-width="4"/><g fill="#df4056" stroke="#9e3545" stroke-width="2"><rect x="543" y="176" width="12" height="10"/><rect x="555" y="169" width="11" height="10"/><rect x="568" y="181" width="12" height="10"/><rect x="581" y="170" width="12" height="10"/><rect x="596" y="182" width="12" height="10"/><rect x="548" y="190" width="12" height="9"/><rect x="574" y="194" width="12" height="9"/></g><g fill="#ff9eaa"><rect x="550" y="171" width="5" height="4"/><rect x="573" y="178" width="5" height="4"/><rect x="589" y="168" width="5" height="4"/></g></g>
+<!-- pond and sandy lip -->
+<path d="M620 359l22-19 42-7 44 7 27 17 5 19-20 22-40 8-45-8-27-17z" fill="#d5b784"/><path d="M631 358l23-13 38-5 39 8 22 16-18 18-42 8-40-7-22-13z" fill="#6eafcb" stroke="#b6d9d8" stroke-width="3"/><path d="M655 356h27v4h-27zM700 374h13v3h-13z" fill="#c5e8e9"/>
+<!-- bench, stump, watering can and pots -->
+<g><rect x="533" y="367" width="69" height="13" fill="#9b6544"/><rect x="540" y="380" width="6" height="14" fill="#704a35"/><rect x="590" y="380" width="6" height="14" fill="#704a35"/><rect x="542" y="370" width="54" height="3" fill="#d99a62"/>
+<rect x="692" y="260" width="38" height="14" fill="#9d704a"/><rect x="698" y="254" width="27" height="7" fill="#d5a26d"/><rect x="705" y="258" width="10" height="3" fill="#7e553c"/>
+<rect x="618" y="376" width="14" height="17" fill="#b37a4d"/><rect x="621" y="371" width="8" height="7" fill="#e0b27b"/><path d="M630 381h10l6 5-2 5h-14z" fill="#4d9d8a"/></g>
+<!-- stepping stones -->
+<g fill="#d8c9ab"><rect x="420" y="348" width="27" height="10"/><rect x="448" y="356" width="20" height="11"/><rect x="471" y="360" width="25" height="10"/><rect x="493" y="365" width="24" height="10"/></g>
+<!-- tiny shore flowers -->
+<g><use href="#flower" transform="translate(123 346) scale(.7)"/><use href="#flower" transform="translate(151 374) scale(.7)"/><use href="#flower" transform="translate(274 400) scale(.8)"/><use href="#flower" transform="translate(347 420) scale(.8)"/><use href="#flower" transform="translate(570 425) scale(.7)"/><use href="#flower" transform="translate(740 402) scale(.8)"/><use href="#flower" transform="translate(801 357) scale(.7)"/><use href="#flower" transform="translate(786 192) scale(.7)"/></g>
+</svg>
