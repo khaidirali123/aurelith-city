@@ -1762,59 +1762,113 @@ function drawUniverse() {
   const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
   const w = canvas.width, h = canvas.height;
-  pixelRect(ctx,0,0,w,h,"#91cbd2");
-  // pastel sunset and tiny stars
-  pixelRect(ctx,80,65,38,6,"#d5f0e5"); pixelRect(ctx,115,65,22,6,"#d5f0e5");
-  pixelRect(ctx,730,65,28,5,"#d5f0e5"); pixelRect(ctx,758,65,18,5,"#d5f0e5");
-  [[130,110],[800,125],[680,75],[250,180],[870,210],[90,240]].forEach(p=>{pixelRect(ctx,p[0],p[1],5,5,"#fff4c4");pixelRect(ctx,p[0]+7,p[1]+4,3,3,"#fff4c4")});
-  // water ripples
-  for(let i=0;i<12;i++){pixelRect(ctx,35+i*78,360+(i%3)*34,34,5,"#75b5c6");pixelRect(ctx,55+i*71,425+(i%2)*22,22,4,"#b5e0d8")}
-  // island shadow and grass layers
-  pixelRect(ctx,105,292,750,155,"#5c8a79"); pixelRect(ctx,130,260,700,175,"#3e6e62");
-  pixelRect(ctx,150,245,660,170,"#7eb77d"); pixelRect(ctx,185,220,590,180,"#93c982");
-  pixelRect(ctx,225,210,510,165,"#acd58a"); pixelRect(ctx,255,195,445,155,"#acd58a");
-  // sandy edge
-  pixelRect(ctx,150,330,660,38,"#d9c18a"); pixelRect(ctx,180,355,600,25,"#d9c18a");
-  pixelRect(ctx,180,315,600,45,"#8ec47e"); pixelRect(ctx,215,285,530,60,"#a9d58a");
-  // winding stone path
-  pixelRect(ctx,440,315,75,18,"#d7cda6"); pixelRect(ctx,485,330,25,35,"#d7cda6"); pixelRect(ctx,500,355,105,16,"#d7cda6");
-  pixelRect(ctx,453,319,17,6,"#f2e8c3");pixelRect(ctx,510,359,24,5,"#f2e8c3");
-  // cottage
-  pixelRect(ctx,350,220,145,85,"#f2d7a4"); pixelRect(ctx,337,209,170,20,"#bd766d");
-  pixelRect(ctx,352,185,140,25,"#d88b7c");pixelRect(ctx,374,169,95,18,"#d88b7c");
-  pixelRect(ctx,370,236,28,28,"#7bb6c3");pixelRect(ctx,430,236,28,28,"#7bb6c3");
-  pixelRect(ctx,405,264,32,41,"#93654f");pixelRect(ctx,416,281,5,5,"#f6d9a3");
-  pixelRect(ctx,340,300,165,8,"#6b8f60");
-  // window highlights
-  pixelRect(ctx,375,239,18,4,"#d4f1e6");pixelRect(ctx,435,239,18,4,"#d4f1e6");
-  // trees
-  function tree(x,y){pixelRect(ctx,x+9,y+24,10,22,"#95674d");pixelRect(ctx,x,y+8,28,22,"#47865a");pixelRect(ctx,x+4,y,22,20,"#5c9d62");pixelRect(ctx,x+7,y+5,6,5,"#a9d58a");}
-  tree(235,235);tree(630,220);tree(690,290);tree(270,310);tree(560,205);
-  // flowers and pond
-  pixelRect(ctx,555,290,70,32,"#6fb6c5");pixelRect(ctx,565,296,42,5,"#b6e5df");pixelRect(ctx,590,310,24,5,"#4b9aaa");
-  [[300,280],[320,300],[535,340],[650,325],[290,350],[605,245],[520,220]].forEach((p,i)=>{pixelRect(ctx,p[0],p[1],5,5,i%2?"#f4a7b8":"#fff0a6");pixelRect(ctx,p[0]+5,p[1]+4,4,4,"#f7fff0")});
-  // Garden growth is calculated from timestamps, including time spent offline.
+  const rect = (x,y,rw,rh,color) => pixelRect(ctx,Math.round(x),Math.round(y),Math.round(rw),Math.round(rh),color);
+  const blockCircle = (cx,cy,rx,ry,color,step=8) => {
+    for(let yy=-ry;yy<=ry;yy+=step){
+      const span=rx*Math.sqrt(Math.max(0,1-(yy*yy)/(ry*ry)));
+      rect(cx-span,cy+yy,span*2,step+1,color);
+    }
+  };
+  // Clear sky-blue sea and gentle pixel ripples.
+  rect(0,0,w,h,"#91bfe0");
+  for(let i=0;i<18;i++){
+    const x=(i*71+19)%w, y=(i*47+31)%h;
+    rect(x,y,14+(i%4)*5,3,"#b8d9e9");
+    rect(x+8,y+6,8,2,"#77b2d1");
+  }
+  // Irregular island shadow, pale sand rim and grassy interior.
+  ctx.fillStyle="#587e87";ctx.beginPath();
+  [[75,238],[112,155],[215,110],[330,93],[430,62],[590,62],[712,113],[818,180],[864,275],[848,374],[774,446],[663,480],[488,485],[333,461],[202,429],[96,367],[59,300]].forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+  ctx.closePath();ctx.fill();
+  ctx.fillStyle="#cbb78e";ctx.beginPath();
+  [[70,224],[108,148],[215,103],[334,85],[432,55],[592,56],[715,108],[818,174],[857,268],[842,369],[770,438],[659,468],[487,474],[333,451],[202,418],[98,358],[64,294]].forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+  ctx.closePath();ctx.fill();
+  ctx.fillStyle="#efd49b";ctx.beginPath();
+  [[82,224],[119,155],[220,113],[337,96],[435,68],[588,67],[704,118],[805,181],[842,270],[827,359],[760,423],[651,451],[488,458],[338,437],[211,405],[111,349],[77,292]].forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+  ctx.closePath();ctx.fill();
+  ctx.fillStyle="#9bcf8b";ctx.beginPath();
+  [[95,224],[132,161],[229,122],[343,108],[437,81],[582,81],[692,130],[790,190],[823,270],[810,351],[747,408],[643,437],[488,443],[344,422],[222,392],[125,341],[91,291]].forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+  ctx.closePath();ctx.fill();
+  // Grass patches and tiny clover pixels.
+  for(let i=0;i<100;i++){
+    const x=115+(i*67)%680, y=125+(i*43)%300;
+    rect(x,y,4,3,i%3===0?"#d1e6a0":i%3===1?"#7eb777":"#e0e8ac");
+    if(i%4===0)rect(x+4,y+3,3,3,"#6eaa70");
+  }
+  // Brick retaining wall across the north and south edges.
+  for(let x=315;x<720;x+=28){rect(x,83,26,10,"#bd9471");rect(x,83,26,2,"#e3c29a");rect(x+12,91,2,7,"#96775f");}
+  for(let x=210;x<730;x+=28){rect(x,435,26,14,"#b58b6b");rect(x,435,26,3,"#e1bd91");rect(x+12,439,2,10,"#95735b");}
+  // Sandy shoreline details.
+  [[104,217],[115,180],[139,146],[179,122],[246,109],[785,178],[829,250],[815,353],[755,411],[666,444],[300,423],[118,340]].forEach(([x,y],i)=>{rect(x,y,7,5,i%2?"#f8e3b4":"#d8bd8b");});
+  // Winding stone path between the house, garden and pond.
+  [[385,338,90,13],[453,350,26,24],[470,372,86,12],[541,359,28,18],[558,343,60,12]].forEach(([x,y,rw,rh])=>{rect(x,y,rw,rh,"#c9b99a");rect(x+4,y+3,rw-10,3,"#e8d8b5");});
+  // Wooden cottage deck and little cabin.
+  rect(205,319,320,36,"#9a6445");rect(218,315,294,7,"#d99a61");
+  for(let x=220;x<510;x+=34){rect(x,326,3,26,"#704d3a");rect(x+5,329,25,2,"#e6ad72");}
+  rect(273,252,150,78,"#e9c99a");rect(258,241,177,20,"#9e6258");rect(277,222,139,20,"#bd7668");rect(300,207,94,16,"#d28b79");
+  rect(291,269,30,28,"#8ac2c9");rect(376,269,30,28,"#8ac2c9");rect(291,269,30,4,"#d9f0d8");rect(376,269,30,4,"#d9f0d8");
+  rect(337,291,31,39,"#815743");rect(357,309,4,4,"#f4d58a");
+  // Large old tree with a hollow, layered canopy.
+  rect(315,271,18,62,"#81533c");rect(350,266,18,67,"#976348");rect(389,273,16,60,"#744b38");
+  blockCircle(345,231,132,91,"#467a50",14);blockCircle(333,212,117,82,"#5c9159",14);
+  blockCircle(302,201,85,65,"#77aa68",14);blockCircle(373,190,73,62,"#679b5e",14);
+  [[255,183],[282,162],[314,148],[359,156],[397,171],[422,195],[280,227],[351,224]].forEach(([x,y],i)=>rect(x,y,18,8,i%2?"#8dbb70":"#9bc77a"));
+  // Tall trees toward the upper and right sides.
+  function tree(x,y,scale=1){
+    rect(x+12*scale,y+27*scale,12*scale,42*scale,"#80543c");
+    rect(x+7*scale,y+43*scale,8*scale,22*scale,"#9a6746");
+    blockCircle(x+20*scale,y+22*scale,43*scale,31*scale,"#3e7750",7*scale);
+    blockCircle(x+18*scale,y+11*scale,34*scale,27*scale,"#578e58",7*scale);
+    blockCircle(x+8*scale,y+5*scale,24*scale,18*scale,"#7eae68",7*scale);
+    rect(x-3*scale,y+4*scale,13*scale,6*scale,"#9bc87a");
+  }
+  tree(450,84,1.1);tree(615,72,1.65);tree(754,208,1.15);tree(155,120,.7);
+  // Flower beds with picket fences.
+  function flowerBed(x,y,cols,rows){
+    rect(x,y,cols*15+8,rows*14+8,"#c99b72");
+    rect(x+4,y+4,cols*15,rows*14,"#795e45");
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+      const fx=x+8+c*15,fy=y+5+r*14;
+      rect(fx,fy+5,4,7,"#4e8d56");
+      rect(fx-3,fy,5,5,(c+r)%3===0?"#f1a3c0":(c+r)%3===1?"#f7d66f":"#e66d72");
+      rect(fx+2,fy-2,5,5,"#f4d8e2");
+    }
+    for(let px=x-2;px<x+cols*15+8;px+=9){rect(px,y-4,5,12,"#f0d8b0");rect(px,y-4,5,2,"#fff0cc");}
+  }
+  flowerBed(535,162,5,2);flowerBed(614,291,6,2);flowerBed(502,303,4,2);
+  // Pond with sandy banks and glints.
+  blockCircle(697,372,91,43,"#e6c58e",8);blockCircle(699,368,79,34,"#78b8d0",7);blockCircle(681,358,40,9,"#b6e1e4",5);rect(722,379,18,4,"#c8edf0");
+  // Stump, log, benches, watering can and little path props.
+  rect(705,264,36,15,"#a8754c");rect(712,259,23,7,"#d7ad76");rect(724,261,6,3,"#8d6747");
+  rect(570,389,69,13,"#9d6748");rect(579,402,5,11,"#79513c");rect(626,402,5,11,"#79513c");
+  rect(641,387,12,18,"#9d6b4d");rect(644,383,7,7,"#d2a06d");rect(653,394,12,7,"#4f9a83");
+  // Tiny red and pink flower clusters around the shore.
+  for(let i=0;i<28;i++){
+    const x=82+(i*31)%760, y=145+(i*53)%290;
+    if((x<150||x>760||y>410)&&i%2===0){
+      rect(x,y,6,5,i%4===0?"#e8586a":"#c83e59");rect(x+3,y-2,4,4,"#f7a6b0");rect(x+2,y+5,3,6,"#488b52");
+    }
+  }
+  // Player's garden plots grow with real elapsed time, including offline time.
   (universeData.garden||[]).forEach((plot,i)=>{
-    const gx=285+i*62, gy=337;
-    pixelRect(ctx,gx,gy,42,24,"#93664a");
-    pixelRect(ctx,gx+3,gy+3,36,18,"#b98a5e");
+    const gx=290+i*62,gy=365;
+    rect(gx,gy,42,24,"#93664a");rect(gx+3,gy+3,36,18,"#b98a5e");
     if(plot&&plot.plantedAt){
       const ready=Date.now()-Number(plot.plantedAt)>=60000;
-      pixelRect(ctx,gx+17,gy-7,7,ready?18:11,"#438b54");
-      pixelRect(ctx,gx+9,gy-10,9,7,ready?"#f0b7c9":"#78bb65");
-      pixelRect(ctx,gx+23,gy-13,9,8,ready?"#f6d878":"#78bb65");
-      if(ready)pixelRect(ctx,gx+15,gy-16,12,4,"#f6d878");
+      rect(gx+17,gy-7,7,ready?18:11,"#438b54");
+      rect(gx+9,gy-10,9,7,ready?"#f0b7c9":"#78bb65");
+      rect(gx+23,gy-13,9,8,ready?"#f6d878":"#78bb65");
+      if(ready)rect(gx+15,gy-16,12,4,"#f6d878");
     }
   });
-  // decorations placed by player
+  // Player placed objects remain interactive and persistent.
   (universeData.decorations||[]).forEach((d,i)=>drawDecoration(ctx,d.x,d.y,d.type||"flower",i));
-  // avatar and pet
-  const ax=470, ay=310;
-  pixelRect(ctx,ax,ay+13,18,16,"#5269a5");pixelRect(ctx,ax+3,ay+2,13,13,"#f0bd8f");pixelRect(ctx,ax+2,ay,15,5,"#76517b");
-  pixelRect(ctx,ax+6,ay+7,3,3,"#27354a");pixelRect(ctx,ax+12,ay+7,3,3,"#27354a");pixelRect(ctx,ax+4,ay+27,5,7,"#604d70");pixelRect(ctx,ax+13,ay+27,5,7,"#604d70");
-  pixelRect(ctx,ax+27,ay+20,20,16,"#f1d98a");pixelRect(ctx,ax+30,ay+13,14,12,"#f1d98a");pixelRect(ctx,ax+31,ay+10,5,8,"#f1d98a");pixelRect(ctx,ax+40,ay+10,5,8,"#f1d98a");pixelRect(ctx,ax+33,ay+18,3,3,"#35445a");pixelRect(ctx,ax+40,ay+18,3,3,"#35445a");
-  // nameplate
-  pixelRect(ctx,ax-9,ay-20,76,13,"#24354b");ctx.fillStyle="#fff4dc";ctx.font="10px monospace";ctx.fillText((character&&character.displayName)||"Petualang",ax-5,ay-10);
+  // Character and companion on the lawn.
+  const ax=468,ay=337;
+  rect(ax,ay+13,18,16,"#5269a5");rect(ax+3,ay+2,13,13,"#f0bd8f");rect(ax+2,ay,15,5,"#76517b");
+  rect(ax+6,ay+7,3,3,"#27354a");rect(ax+12,ay+7,3,3,"#27354a");rect(ax+4,ay+27,5,7,"#604d70");rect(ax+13,ay+27,5,7,"#604d70");
+  rect(ax+27,ay+20,20,16,"#f1d98a");rect(ax+30,ay+13,14,12,"#f1d98a");rect(ax+31,ay+10,5,8,"#f1d98a");rect(ax+40,ay+10,5,8,"#f1d98a");rect(ax+33,ay+18,3,3,"#35445a");rect(ax+40,ay+18,3,3,"#35445a");
+  rect(ax-9,ay-20,76,13,"#294353");ctx.fillStyle="#fff4dc";ctx.font="10px monospace";ctx.fillText((character&&character.displayName)||"Petualang",ax-5,ay-10);
 }
 function drawDecoration(ctx,x,y,type,i) {
   if(type==="flower"){pixelRect(ctx,x,y,6,6,i%2?"#f5a6c2":"#fff0a6");pixelRect(ctx,x+2,y+5,3,7,"#4d9362");pixelRect(ctx,x-2,y+2,4,4,"#f7e6b7");}
