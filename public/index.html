@@ -647,7 +647,18 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
         <div class="stat"><small>🍃 Aktivitas</small><strong id="currentActivity">Merawat pulau</strong><span id="activityChip" class="hidden">Warga aktif</span></div>
       </div>
       <div class="row-actions"><button onclick="showTab('universeTab')">🌱 Kembali ke pulau</button><button class="secondary" onclick="showTab('settingsTab')">👤 Ubah karakter</button></div>
-      <div class="panel" style="margin-top:18px"><h2>📖 Catatan perjalanan</h2><div id="feed" class="feed"><div class="event">Perjalanan pulau dimulai hari ini.</div></div></div>
+      <div class="panel" style="margin-top:18px">
+        <h2>📖 Jurnal perjalanan</h2>
+        <p class="muted">Catatan tersimpan di akunmu dan bisa dibuka kembali setelah login.</p>
+        <form id="journalForm" class="form-stack">
+          <label for="journalInput">Tulis catatan pribadi</label>
+          <textarea id="journalInput" maxlength="180" rows="2" placeholder="Contoh: Hari ini aku menanam bunga pertama di pulauku..." required></textarea>
+          <button type="submit">Simpan ke jurnal</button>
+        </form>
+        <p id="journalStatus" class="muted" role="status"></p>
+        <div id="journalEntries" class="feed" aria-live="polite"><div class="event">Memuat jurnal perjalanan...</div></div>
+        <details style="margin-top:12px"><summary>Aktivitas terbaru sesi ini</summary><div id="feed" class="feed"><div class="event">Perjalanan pulau dimulai hari ini.</div></div></details>
+      </div>
     </div>
   </div>
 </section>
@@ -814,13 +825,73 @@ function money(value) {
 
 function addEvent(message) {
   const feed = $("feed");
-  const item = document.createElement("div");
-  item.className = "event";
-  item.textContent = new Date().toLocaleTimeString("id-ID", {
-    hour:"2-digit", minute:"2-digit"
-  }) + " · " + message;
-  feed.prepend(item);
-  while (feed.children.length > 12) feed.lastElementChild.remove();
+  if (feed) {
+    const item = document.createElement("div");
+    item.className = "event";
+    item.textContent = new Date().toLocaleTimeString("id-ID", {
+      hour:"2-digit", minute:"2-digit"
+    }) + " · " + message;
+    feed.prepend(item);
+    while (feed.children.length > 12) feed.lastElementChild.remove();
+  }
+  // Save meaningful game events in the account journal, not transient errors.
+  if (token && !/gagal|error|belum bisa|tidak dapat/i.test(String(message))) {
+    saveJournalEntry(String(message), "activity").catch(() => {});
+  }
+}
+
+function renderJournal(entries) {
+  const list = $("journalEntries");
+  if (!list) return;
+  list.replaceChildren();
+  if (!Array.isArray(entries) || entries.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "event";
+    empty.textContent = "Jurnalmu masih kosong. Tulis catatan pertama atau mulai aktivitas di pulau.";
+    list.append(empty);
+    return;
+  }
+  for (const entry of entries) {
+    const card = document.createElement("div");
+    card.className = "event";
+    const message = document.createElement("div");
+    message.textContent = entry.message || "";
+    const meta = document.createElement("small");
+    meta.className = "muted";
+    const date = entry.createdAt ? new Date(entry.createdAt.replace(" ", "T") + (entry.createdAt.includes("Z") ? "" : "Z")) : new Date();
+    meta.textContent = (Number.isNaN(date.getTime()) ? "Catatan tersimpan" : date.toLocaleString("id-ID", { dateStyle:"medium", timeStyle:"short" }));
+    card.append(message, meta);
+    list.append(card);
+  }
+}
+
+async function loadJournal() {
+  if (!token) return;
+  const list = $("journalEntries");
+  if (list) {
+    const loading = document.createElement("div");
+    loading.className = "event";
+    loading.textContent = "Memuat jurnal...";
+    list.replaceChildren(loading);
+  }
+  try {
+    const result = await api("/api/journal");
+    renderJournal(result.entries || []);
+    const status = $("journalStatus");
+    if (status) status.textContent = (result.entries || []).length + " catatan tersimpan.";
+  } catch (error) {
+    const status = $("journalStatus");
+    if (status) status.textContent = "Jurnal belum bisa dimuat: " + error.message;
+  }
+}
+
+async function saveJournalEntry(message, type = "note") {
+  if (!token || !String(message).trim()) return;
+  await api("/api/journal", {
+    method:"POST",
+    body:JSON.stringify({ message:String(message).trim().slice(0,180), type })
+  });
+  await loadJournal();
 }
 
 async function api(path, options = {}) {
@@ -917,6 +988,7 @@ async function enterCity() {
     character = me.character;
     await refreshAll();
     loadUniverseData();
+    await loadJournal();
     addEvent("Kamu masuk ke Aurelith City.");
   } catch (error) {
     if (error.message.toLowerCase().includes("sesi")) {
@@ -1859,6 +1931,26 @@ async function initialize() {
     }
   }
 }
+
+$("journalForm")?.addEventListener("submit", async event => {
+  event.preventDefault();
+  const input = $("journalInput");
+  const status = $("journalStatus");
+  const button = event.submitter || $("journalForm").querySelector('button[type="submit"]');
+  const message = input?.value?.trim() || "";
+  if (!message) return;
+  if (button) button.disabled = true;
+  if (status) status.textContent = "Menyimpan catatan...";
+  try {
+    await saveJournalEntry(message, "note");
+    input.value = "";
+    if (status) status.textContent = "Catatan berhasil disimpan.";
+  } catch (error) {
+    if (status) status.textContent = "Catatan gagal disimpan: " + error.message;
+  } finally {
+    if (button) button.disabled = false;
+  }
+});
 
 setAuthMode("login");
 initialize();
