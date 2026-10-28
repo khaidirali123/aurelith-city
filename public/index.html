@@ -622,6 +622,12 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
             <div id="islandShopItems" class="garden-plots"></div>
           </div>
           <div class="universe-side-card">
+            <h2>🧺 Meja kerajinan</h2>
+            <p class="universe-note">Gunakan hasil kebun untuk membuat dekorasi. Bahan akan dikurangi setelah kerajinan berhasil.</p>
+            <div id="craftingRecipes" class="garden-plots"></div>
+            <p class="universe-note" id="craftingMessage" role="status">Panen tanaman untuk mengumpulkan bahan.</p>
+          </div>
+          <div class="universe-side-card">
             <h2>🎒 Buku Petualangan</h2>
             <p class="universe-note">🌱 <strong id="universeDecorCount">0</strong> dekorasi ditaruh</p>
             <p class="universe-note">💚 <strong id="universeCareCount">0</strong> kali merawat pet</p>
@@ -1826,6 +1832,7 @@ function renderUniverse() {
   if(el("universeCoins"))el("universeCoins").textContent=String(Number(universeData.coins ?? 20));
   if(el("gardenPlots"))renderGarden();
   if(el("islandShopItems"))renderIslandShop();
+  if(el("craftingRecipes"))renderCraftingRecipes();
   if(el("universeLevel"))el("universeLevel").textContent="Level "+(1+Math.floor((universeData.xp||0)/5));
   if(el("universeDecorCount"))el("universeDecorCount").textContent=(universeData.decorations||[]).length;
   if(el("universeCareCount"))el("universeCareCount").textContent=universeData.care||0;
@@ -1868,6 +1875,46 @@ function renderIslandShop(){
     btn.disabled=viewingSharedWorld||Number(universeData.coins||0)<item.price;
     btn.onclick=()=>buyIslandItem(item.type);row.append(info,btn);el.appendChild(row);
   });
+}
+const ISLAND_RECIPES=[
+  {id:"flower",type:"flower",name:"Buket mungil",emoji:"💐",seeds:3,coins:2,description:"3 benih + 2 koin"},
+  {id:"mushroom",type:"mushroom",name:"Jamur hias",emoji:"🍄",seeds:4,coins:5,description:"4 benih + 5 koin"},
+  {id:"crystal",type:"crystal",name:"Kristal kebun",emoji:"💎",seeds:5,coins:8,description:"5 benih + 8 koin"}
+];
+function renderCraftingRecipes(){
+  const el=$("craftingRecipes");if(!el)return;el.replaceChildren();
+  ISLAND_RECIPES.forEach(recipe=>{
+    const row=document.createElement("div");row.className="garden-shop-row";
+    const info=document.createElement("div");
+    const title=document.createElement("strong");title.textContent=recipe.emoji+" "+recipe.name;
+    const details=document.createElement("p");details.className="universe-note";
+    details.textContent=recipe.description+" · dimiliki "+Number((universeData.inventory||{})[recipe.type]||0);
+    info.append(title,details);
+    const button=document.createElement("button");button.className="secondary";button.textContent="Buat";
+    button.disabled=viewingSharedWorld||Number(universeData.seeds||0)<recipe.seeds||Number(universeData.coins||0)<recipe.coins;
+    button.onclick=()=>craftIslandItem(recipe.id);
+    row.append(info,button);el.append(row); 
+  });
+}
+function craftIslandItem(recipeId){
+  if(viewingSharedWorld)return;
+  const recipe=ISLAND_RECIPES.find(item=>item.id===recipeId);
+  if(!recipe)return;
+  if(Number(universeData.seeds||0)<recipe.seeds||Number(universeData.coins||0)<recipe.coins){
+    const message=$("craftingMessage");if(message)message.textContent="Bahan belum cukup. Kumpulkan benih dari kebun dan koin dari panen.";
+    return;
+  }
+  universeData.inventory=universeData.inventory||{};
+  if(Number(universeData.inventory[recipe.type]||0)>=999){
+    const message=$("craftingMessage");if(message)message.textContent="Tas dekorasi untuk barang ini sudah penuh.";
+    return;
+  }
+  universeData.seeds-=recipe.seeds;
+  universeData.coins-=recipe.coins;
+  universeData.inventory[recipe.type]=Number(universeData.inventory[recipe.type]||0)+1;
+  universeData.xp=Math.min(1000000,Number(universeData.xp||0)+2);
+  saveUniverseData();renderUniverse();
+  const message=$("craftingMessage");if(message)message.textContent="Berhasil membuat "+recipe.name+"! Barang masuk ke tas dekorasi.";
 }
 // UI-only refresh: no network calls or background server workload.
 setInterval(()=>{
