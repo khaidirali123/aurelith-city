@@ -585,7 +585,7 @@ input,select,textarea{background:#121b30;border:2px solid #526584;border-radius:
       </div>
       <div class="universe-wrap">
         <div>
-          <div class="universe-stage"><canvas id="universeCanvas" width="960" height="540" aria-label="Pulau pixel art milikmu. Ketuk pulau untuk menaruh dekorasi saat mode dekorasi aktif."></canvas></div>
+          <div class="universe-stage"><canvas id="universeCanvas" width="960" height="540" aria-label="Pulau pixel-art interaktif. Klik area berumput untuk memindahkan karakter; aktifkan mode dekorasi untuk menata pulau."></canvas></div>
           <div class="universe-actions">
             <button onclick="universeFeedPet()">🍓 Beri makan</button>
             <button onclick="universePlayPet()">🧶 Main dengan pet</button>
@@ -1794,8 +1794,9 @@ function drawUniverse() {
   });
   // Player-created decorations stay interactive and are drawn over the island art.
   (universeData.decorations || []).forEach((item, i) => drawDecoration(ctx, item.x, item.y, item.type || "flower", i));
-  // Player avatar and companion.
-  const ax = 468, ay = 337;
+  // Player avatar and companion: position is saved with the island data.
+  const ax = Math.max(170, Math.min(790, Number(universeData.avatarX ?? 468)));
+  const ay = Math.max(220, Math.min(390, Number(universeData.avatarY ?? 337)));
   pixelRect(ctx, ax, ay+13, 18, 16, "#5269a5");
   pixelRect(ctx, ax+3, ay+2, 13, 13, "#f0bd8f");
   pixelRect(ctx, ax+2, ay, 15, 5, "#76517b");
@@ -1986,11 +1987,18 @@ function storeSelectedDecoration(){
 (function attachUniverseCanvas(){
   const canvas=$("universeCanvas");if(!canvas)return;
   canvas.addEventListener("click",function(e){
-    if(!universeDecorMode){universeMessage("Aktifkan mode dekorasi untuk memindahkan atau menaruh benda.");return;}
     const rect=canvas.getBoundingClientRect();
     const x=Math.round((e.clientX-rect.left)*canvas.width/rect.width);
     const y=Math.round((e.clientY-rect.top)*canvas.height/rect.height);
     if(x<150||x>810||y<190||y>390){universeMessage("Pilih area pulau yang berumput.");return;}
+    if(!universeDecorMode){
+      universeData.avatarX=Math.max(170,Math.min(790,x-9));
+      universeData.avatarY=Math.max(220,Math.min(390,y-12));
+      saveUniverseData();
+      drawUniverse();
+      universeMessage("Karakter berpindah ke lokasi yang kamu pilih. Aktifkan mode dekorasi jika ingin menata pulau.");
+      return;
+    }
     const decorations=universeData.decorations||(universeData.decorations=[]);
     if(selectedDecorationIndex!==null&&decorations[selectedDecorationIndex]){
       decorations[selectedDecorationIndex]={...decorations[selectedDecorationIndex],x,y};
