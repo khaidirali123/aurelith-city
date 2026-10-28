@@ -610,6 +610,50 @@ async function handleApi(request, env) {
     return json({success:true,cityTime:String(hour).padStart(2,"0")+":"+String(clock?.minute||0).padStart(2,"0"),npcs:result.results||[]});
   }
 
+  // JURNAL PRIBADI: riwayat tersimpan per karakter, tanpa mengubah tabel lama.
+  if (path === "/api/journal" && (method === "GET" || method === "POST")) {
+    const session = await getSession(request, db);
+    if (!session) return json({ error: "Silakan login kembali." }, 401);
+
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS player_journal (
+        id TEXT PRIMARY KEY,
+        character_id TEXT NOT NULL,
+        entry_type TEXT NOT NULL DEFAULT 'activity',
+        message TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run();
+
+    if (method === "GET") {
+      const result = await db.prepare(
+        "SELECT id, entry_type AS type, message, created_at AS createdAt FROM player_journal WHERE character_id=? ORDER BY created_at DESC, rowid DESC LIMIT 100"
+      ).bind(session.character_id).all();
+      return json({ success: true, entries: result.results || [] });
+    }
+
+    const body = await readBody(request);
+    const message = typeof body?.message === "string" ? body.message.trim() : "";
+    const type = typeof body?.type === "string" ? body.type.trim().slice(0, 24) : "activity";
+    if (!message || message.length > 180) {
+      return json({ error: "Catatan jurnal harus berisi 1–180 karakter." }, 400);
+    }
+
+    // Limit journal writes to 40 entries per character in the previous minute.
+    const recent = await db.prepare(
+      "SELECT COUNT(*) AS total FROM player_journal WHERE character_id=? AND created_at >= datetime('now','-1 minute')"
+    ).bind(session.character_id).first();
+    if (Number(recent?.total || 0) >= 40) {
+      return json({ error: "Jurnal terlalu sering diperbarui. Coba lagi sebentar." }, 429);
+    }
+
+    const id = crypto.randomUUID();
+    await db.prepare(
+      "INSERT INTO player_journal(id,character_id,entry_type,message) VALUES(?,?,?,?)"
+    ).bind(id, session.character_id, type || "activity", message).run();
+    return json({ success: true, id });
+  }
+
   // PROFIL AKUN DAN KARAKTER
   if (path === "/api/me" && method === "GET") {
     const session = await getSession(request, db);
